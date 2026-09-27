@@ -1,0 +1,64 @@
+examples:
+  - id: three-side-form-audit
+    title:
+      zh: 尾句柄流三侧形制定谱
+      en: Three-Side Tail Form Audit
+    description:
+      zh: 对指定档（如 AC1015）备齐真本/ODA oracle/我方产物三侧语料，锚定 code-nibble 解尾，只比逐类 (码序,残位,c3枚数) 形制集合并给出三侧同形判定
+      en: Prepare native / ODA oracle / our-output corpora for a version cell, decode tails with anchored code-nibble, and verdict three-side same-form on per-class (code-seq, residual-bits, c3-count) form sets only
+    prompt:
+      zh: |-
+        对 {{档位（如 AC1015）}} 的 {{类别名或类型码（如 512 CELLSTYLEMAP）}} 做尾段形制定谱：
+        真本用 git show <删档提交>^:"新增图纸/{{add_2000.dwg}}" 取回，oracle 用 ODAFileConverter 直转 ACAD2000 DWG 0 1 造，
+        我方产物用 CLI --convert {{目标}} 生成；三份各跑 tools/R2kCmp 台账与 tools/r20tail.py --frames 自检（≥8 位残差必须为 0），
+        再 --audit 与形制集合对照，给出「三侧同形 / 差在何类何枚」的判定。
+        全程勿按句柄配对，残位只当同类同枚两侧相等量。
+      en: |-
+        Run a tail form audit for {{class or type code, e.g. 512 CELLSTYLEMAP}} in {{version cell, e.g. AC1015}}:
+        recover the native via git show <delete-commit>^:"新增图纸/{{add_2000.dwg}}", build the oracle with
+        ODAFileConverter ... ACAD2000 DWG 0 1, produce ours via CLI --convert; run tools/R2kCmp plus
+        tools/r20tail.py --frames on each (≥8-bit residual must be 0), then --audit and compare the per-class
+        form sets. Verdict three-side same-form or name the divergent class/ref. Never pair by handle;
+        treat residual bits only as per-object cross-side equality.
+  - id: lock-criteria-red-first
+    title:
+      zh: 红-先锁离线判据 + 双负控
+      en: Red-First Criteria Lock With Two Negative Controls
+    description:
+      zh: 把刚定谱的尾段形制先锁成离线判据档（逐类强判据 + 同族集合判据 + c3≤1 哨），再在干净 HEAD 隔离树里跑剥/双插两枚负控证明判据敏感，跑完还原
+      en: Lock the freshly-spec'd tail form into an offline criteria file (per-class strong asserts + family form-set assert + c3≤1 sentinel), then prove sensitivity with strip / double-insert negative controls in a clean-HEAD worktree and restore
+    prompt:
+      zh: |-
+        按 dwg-tail-form-audit 的 Step 5/6，把 {{定谱结论（如 AC1015 尾段 code-nibble 形制）}} 落成
+        tests/DwgParser.Tests/{{档名}} 判据（模板 CellStyleMapAc1015TailStreamTests，16 例形制）：
+        先红-先锁，再 git worktree add out/_{{tag}} --detach HEAD + mkdir -p out + 全新构建，
+        跑负控①剥一枚尾引用、负控②双插 c3，各自必须转红；不红即判据失明，回 Step 4 收紧口径。
+        锚若不够用，只走 CaptureAnchor 式只读新文件，禁写 HandleStreamStartBit/HasHandleStream。
+      en: |-
+        Per Step 5/6 of dwg-tail-form-audit, lock {{spec verdict, e.g. AC1015 tail code-nibble form}} into
+        tests/DwgParser.Tests/{{file}} (template: CellStyleMapAc1015TailStreamTests, 16-case form):
+        red-first, then in an isolated clean-HEAD worktree (git worktree add out/_{{tag}} --detach HEAD,
+        mkdir -p out, fresh build) run negative control 1 (strip one tail ref) and 2 (double-insert c3);
+        each must turn red — if not, the criteria is blind, tighten per Step 4. If anchors fall short, add a
+        read-only CaptureAnchor-style file only; never write HandleStreamStartBit/HasHandleStream.
+  - id: extend-anchor-coverage
+    title:
+      zh: 扩尾段解射程（只读锚通道）
+      en: Extend Tail Decode Coverage Via Read-Only Anchors
+    description:
+      zh: 无锚类（0x2A/0x4F/0x31/VISUALSTYLE 等）导致射程不足时，聚合 Capture 自带锚为只读通道并逐手证明对产物零影响
+      en: When no-anchor classes (0x2A/0x4F/0x31/VISUALSTYLE...) cap the decode range, aggregate capture-held anchors into a read-only channel and prove byte-level inertness for products
+    prompt:
+      zh: |-
+        {{文件.dwg}} 用 tools/r20tail.py --frames 报出无锚 {{N}} 枚（集中在 0x2A DICTIONARY / 0x4F XRECORD /
+        0x31 BLOCK_HEADER / VISUALSTYLE…）：不要补公共簿记（§197 写侧会消费），按 CaptureAnchor.cs 先例
+        新增只读聚合类（HsBit/DataEndBit/WalkEndBit 族），R2kCmp 加第 17 列，尺子取两级锚后复测射程；
+        用「干净 HEAD 隔离树 114/114 绿 → 只加新文件仍全绿」证惰性，--frames ≥8 位仍 0 作互证。
+        帧尾回溯只许 --back 显式启用且标「不可自证」，永不进判据。
+      en: |-
+        tools/r20tail.py --frames on {{file.dwg}} shows {{N}} no-anchor objects (0x2A DICTIONARY / 0x4F XRECORD /
+        0x31 BLOCK_HEADER / VISUALSTYLE...): do NOT register public bookkeeping anchors (§197 — the write side
+        consumes them). Follow the CaptureAnchor.cs precedent with a read-only aggregator (HsBit/DataEndBit/
+        WalkEndBit family), add R2kCmp column 17, re-measure coverage with tiered anchors; prove inertness via
+        clean-HEAD worktree green before/after adding only the new file, and ≥8-bit residual staying 0.
+        Back-walk stays behind --back, labeled non-self-proving, never in criteria.

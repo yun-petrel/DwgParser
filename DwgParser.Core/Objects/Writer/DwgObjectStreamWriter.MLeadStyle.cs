@@ -1,0 +1,2 @@
+namespace DwgParser.Core.Objects;
+

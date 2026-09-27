@@ -1,0 +1,58 @@
+examples:
+  - id: entity-category-backfill
+    title:
+      zh: 补一个实体类别槽位
+      en: Backfill an Entity Category
+    description:
+      zh: 对某实体类别跑完整 Teigha 真值对标闭环（重建 Cli → 回导 out/ours → nodata/diff 三分类 → 真实缺口位取证 → 逐版本具体类迁移 → 守绿固化）
+      en: Run the full Teigha truth-parity loop for one entity category (rebuild Cli, re-export our JSON, three-way triage, bit forensics on genuine gaps, per-version concrete-class migration, gate-lock)
+    prompt:
+      zh: |-
+        对实体类别 {{类名（如 AcDbTable）}} 跑完整 Teigha 真值对标闭环（全程不跑 ODAFileConverter）：
+        先 dotnet build src/DwgParser.Cli，再遍历 out/teigha-truth 各 stem 去 最简各版本图纸/图纸模版 找同名 .dwg 回导 out/ours（无源即跳过），
+        跑 entity_truth_gate.py 出最新缺口报告；把该类的 nodata/diff 三分类（真值侧缺键 / ODA 派生假缺口 / 真实 DWG 缺口），
+        只对「真实缺口」用 DvWalk 按 geoRel 锚点钉字段偏移，迁移到「接口 + 公共基类 + internal 版本具体类 + EntityFactory」范式，
+        补齐 reader 解码 + --json 导出键 + CLASS_SPEC 登记四件套，--gate 无回归后 --bless 固化基线。
+      en: |-
+        Run the full Teigha truth-parity loop for entity category {{class, e.g. AcDbTable}} (never invoking ODAFileConverter):
+        build the Cli only, re-export out/ours for every out/teigha-truth stem that has a source .dwg (skip source-less ones),
+        then regenerate the gap report with entity_truth_gate.py; triage that class's nodata/diff into
+        truth-side-missing-key / ODA-derived-fake-gap / genuine-DWG-field-gap, and only for genuine gaps
+        pin the field offset with DvWalk geoRel anchors and migrate to the interface + shared base + internal per-version concrete class + EntityFactory pattern,
+        wiring reader decode + --json export + CLASS_SPEC registration; --bless once --gate shows no regression.
+  - id: triage-nodata-diff
+    title:
+      zh: 判一个 nodata/diff 值不值得修
+      en: Triage a nodata/diff Gap Item
+    description:
+      zh: 已有门报告时，按 nodata 原因串把某类/字段三分类，同 handle 载真值+我方 JSON 逐键核实，只补真实 DWG 字段、勿追假缺口
+      en: With a gap report in hand, classify a class/field's nodata by the reason string and verify per-handle against truth vs our JSON, fixing only genuine DWG fields
+    prompt:
+      zh: |-
+        读 out/teigha-gap-report.json 中 {{类/字段（如 AcDbMText attachment）}} 的 nodata/diff，
+        按 compare_field 落的 nodata 原因串分流：我方无该槽位（待补）= 真实缺口、真值无该字段 / 真值 json 无该键 = 假缺口勿追、
+        ODA 派生字段（如 VPORT onOff）= 勿伪造；对同一 handle 载 out/teigha-truth 与 out/ours 两份 JSON 逐键核实后，
+        给出「该补 / 勿追」的结论；若判真实缺口，标出需同步补的 reader + --json + CLASS_SPEC 三处。
+      en: |-
+        Inspect the nodata/diff for {{class/field, e.g. AcDbMText attachment}} in out/teigha-gap-report.json and classify by the
+        compare_field nodata reason: 我方无该槽位（待补）= genuine gap; 真值无该字段 / key absent in truth = fake gap (do not chase);
+        ODA-derived field (e.g. VPORT onOff) = do not fabricate. Cross-check both the truth and our JSON per handle, then conclude fix-vs-skip;
+        if genuine, list the reader + --json + CLASS_SPEC spots to wire together.
+  - id: verify-fidelity-no-regression
+    title:
+      zh: 验证实体保真未回退
+      en: Verify Entity Fidelity Did Not Regress
+    description:
+      zh: 方向 A 大改 reader/writer 后，只重建 Cli 重导 out/ours、跑 entity_truth_gate --gate 与基线比对，确认覆盖率未降（不跑 ODA）
+      en: After a big Direction-A reader/writer change, rebuild the Cli, re-export out/ours, and diff entity_truth_gate --gate against baseline to confirm coverage held (no ODA run)
+    prompt:
+      zh: |-
+        刚做完方向 A 的 reader/writer 大改，验证实体字段保真未回退（不跑 ODAFileConverter）：
+        重建 Cli（连 Cli 一起 build，别只 build Core 用旧 dll）、遍历 out/teigha-truth 各 stem 找同名源 .dwg 回导 out/ours
+        （无源 maprebuild2/tB2 跳过，注意 load_pair 的 glob 兜底会拿陈旧 ours 参与比对、不反映本轮），
+        再 dotnet test 与 entity_truth_gate.py --gate 对基线比对，报告整体覆盖率是否仍绿、各类差异是否未升。
+      en: |-
+        After a big Direction-A reader/writer change, verify entity field fidelity did not regress (no ODAFileConverter):
+        rebuild including the Cli (never Core-only with a stale dll), re-export out/ours for every truth stem that has a source .dwg
+        (skip source-less maprebuild2/tB2; note load_pair's glob fallback still compares stale ours that won't reflect this round),
+        then run dotnet test and entity_truth_gate.py --gate against the baseline, reporting whether overall coverage held green and no per-class diff rose.

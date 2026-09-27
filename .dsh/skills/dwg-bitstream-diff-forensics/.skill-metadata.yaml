@@ -1,0 +1,60 @@
+examples:
+  - id: diff-verdict
+    title:
+      zh: 判两个位流是插入删除还是重排
+      en: Decide Insert/Delete vs Reorder
+    description:
+      zh: 对同句柄的两个对象帧跑无贪心种子-扩展普查，给出「插入/删除 还是 重排」的判定与单调性证据
+      en: Run the greedy-free seed-and-extend census on two frames of the same handle and deliver an insert/delete-vs-reorder verdict with monotonicity evidence
+    prompt:
+      zh: |-
+        对 {{文件A（我方产物）.dwg}} 与 {{文件B（对照/原生）.dwg}} 的同句柄 {{句柄hex（如 1EBAE）}} 帧做位流差异取证：
+        先用 SsInv --framedump 各取一枚帧落到 txt，再用 tools/oda-compare/bitdiff.py 跑 --hdr 验对象头自洽
+        （判据 66+RL+句柄流+16 == 帧长），再跑 --seeds --K 64 做长公共块普查，
+        给出「前后移位式插入/删除」还是「重排」的判定，并列出 top 块的 ours−ref 偏移序列作为证据。
+        若判出非单调，先用 --align 复核是否来自重复内容块的假匹配，再下结论。
+      en: |-
+        Run bitstream diff forensics on the {{handle hex, e.g. 1EBAE}} frame of {{file A (our output).dwg}} vs {{file B (reference/native).dwg}}:
+        dump each frame with SsInv --framedump into a txt, verify header self-consistency with bitdiff.py --hdr
+        (criterion 66+RL+handle-stream+16 == frame length), then run --seeds --K 64 for the long-common-block census.
+        Deliver an insert/delete-vs-reorder verdict plus the top blocks' ours−ref offset sequence as evidence.
+        If non-monotonic, re-verify with --align for duplicate-content false matches before concluding.
+  - id: align-gaps
+    title:
+      zh: 递归对齐出 gap 清单
+      en: Recurse Into a Gap List
+    description:
+      zh: 用递归对齐把两个位流的差异分解成「公共块 + gap」清单，标出仅我方有 / 仅对照有的位段并自洽校验净差
+      en: Decompose the two bitstreams into a common-block plus gap list, flagging ours-only / ref-only spans and self-checking the net difference
+    prompt:
+      zh: |-
+        对 {{文件A.dwg}} 与 {{文件B.dwg}} 同句柄 {{句柄hex}} 的帧跑递归对齐：
+        python tools/oda-compare/bitdiff.py <ours.txt> <ref.txt> --handle {{句柄hex}} --align --K 32 --minL 48
+        输出每段 ours/ref 的长度与 d 起止、标出 ONLY-OURS / ONLY-REF，并核对末行 Σ(ours−ref) 是否等于两侧数据区长度差；
+        若不等则调小 --minL 重跑。最后按「固定长度差的小 gap」与「大段独占」两类归纳，指出哪些是同一字段的两版形态。
+      en: |-
+        Recurse the alignment for the {{handle hex}} frame of {{file A.dwg}} vs {{file B.dwg}}:
+        python tools/oda-compare/bitdiff.py <ours.txt> <ref.txt> --handle {{handle hex}} --align --K 32 --minL 48
+        Report each span's ours/ref lengths and d start→end, flag ONLY-OURS / ONLY-REF, and check that the final
+        Σ(ours−ref) equals the data-region length difference; if not, lower --minL and re-run.
+        Group the findings into small fixed-length gaps vs large exclusive spans, and identify which are two forms of the same field.
+  - id: dxf-anchor
+    title:
+      zh: 用 DXF 逻辑值锚定字段
+      en: Anchor Fields With DXF Values
+    description:
+      zh: 用 ODA 把源图转 DXF 取逻辑真值，再把该值在两侧位流里全偏移搜，定出字段的绝对位与累计位移
+      en: Convert the source drawing to DXF with ODA for logical ground truth, then search each value across both bitstreams to pin the field's absolute bit and cumulative shift
+    prompt:
+      zh: |-
+        为 {{源图.dwg}} 的 {{对象类型（如 AcDbTableContent）}} 定字段位置：
+        先用 ODAFileConverter 把源图转成 ACAD2018 的 DXF（输出目录另建），从 DXF 取出目标字段的逻辑值；
+        再对两侧帧（{{句柄hex}}）用「构造位串模板 + 全偏移滑窗」搜该值，注意 ASCII / UTF-16LE / UTF-16BE 三种拼法各搜一遍；
+        报告命中位、两侧命中位之差（= 该区段累计位移），并说明该值与相邻位串的长度前缀是否吻合。
+        注意 DXF 的句柄已被 ODA 重建重编号，只可用其字段清单与逻辑值。
+      en: |-
+        Pin field positions for the {{object type, e.g. AcDbTableContent}} of {{source drawing.dwg}}:
+        convert the source to ACAD2018 DXF with ODAFileConverter into a fresh output dir, and read the target field's logical value from the DXF;
+        then search that value across both frames ({{handle hex}}) with a bit-template plus all-offset sliding window, trying ASCII / UTF-16LE / UTF-16BE;
+        report the hit bits, the difference between the two sides (= cumulative shift of that region), and whether the value agrees with
+        the length prefix of the adjacent bit string. Note ODA rebuilds and renumbers handles in the DXF — only its field list and logical values are usable.

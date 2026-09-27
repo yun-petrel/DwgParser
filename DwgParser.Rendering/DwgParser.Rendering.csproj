@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DwgParser.Rendering</RootNamespace>
+    <WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.Fonts" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\*.ttf">
+      <LogicalName>DwgParser.Rendering.Fonts.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DwgParser.Core\DwgParser.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DwgParser.Tests" />
+    <InternalsVisibleTo Include="DwgParser.WinForms" />
+  </ItemGroup>
+
+</Project>

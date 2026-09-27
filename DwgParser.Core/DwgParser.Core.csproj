@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="fonts\*.shx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProbeTool" />
+    <InternalsVisibleTo Include="DvWalk" />
+    <InternalsVisibleTo Include="LeaderProbe" />
+    <InternalsVisibleTo Include="TsProbe" />
+    <InternalsVisibleTo Include="DwgParser.Tests" />
+    <InternalsVisibleTo Include="DwgParser.Rendering" />
+    <InternalsVisibleTo Include="DeleteProbe" />
+    <InternalsVisibleTo Include="MakeProbe" />
+    <InternalsVisibleTo Include="DsRef" />
+  </ItemGroup>
+
+</Project>

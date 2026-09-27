@@ -1,0 +1,56 @@
+examples:
+  - id: cell-full-forensics
+    title:
+      zh: 整格互认取证
+      en: Full Cell Forensics
+    description:
+      zh: 对指定方向 A 单元格跑完整取证流水线（基线 → oracle → 我方帧 → 全帧枚举 → 分类台账）
+      en: Run the complete forensics pipeline for a Direction-A cell (baseline, oracle, our frame, full-frame enumeration, classified ledger)
+    prompt:
+      zh: |-
+        请对方向 A 单元格 {{源版本（如 AC1024）}} → {{目标版本（如 AC1021）}} 跑完整 ODA 互认取证：
+        先建 dotnet build/test + minverify 基线拿当前 ODA 签名，重生成 oracle，产我方转换帧，
+        用 firstdiff 全帧枚举并按「真拦路 / 已知良性 / 良性 renumber / oracle 污染」分类，
+        最后把台账以附证形式追加到 docs/direction-a-ac1032-downgrade.md 末。
+      en: |-
+        Run the full ODA mutual-recognition forensics for Direction-A cell {{source version, e.g. AC1024}} -> {{target version, e.g. AC1021}}:
+        establish dotnet build/test + minverify baseline to capture the current ODA signature, regenerate the oracle,
+        produce our converted frame, enumerate all divergent frames with firstdiff and classify them
+        (real blocker / known-benign / benign handle renumber / oracle contamination),
+        then append the verified ledger as an addendum at the end of docs/direction-a-ac1032-downgrade.md.
+  - id: firstdiff-classify
+    title:
+      zh: 全帧枚举与差异分类
+      en: Enumerate & Classify Frame Diffs
+    description:
+      zh: 已有我方产物与 oracle 时，直接全帧枚举并输出分类差异台账
+      en: When our output and the oracle already exist, enumerate every divergent frame and output a classified ledger
+    prompt:
+      zh: |-
+        用 ProbeTool firstdiff（maxPrint=0）全帧枚举以下两份 DWG 的差异帧：
+        我方产物：{{ours.dwg 路径}}
+        oracle：{{oracle.dwg 路径}}
+        按技能判据区分尺寸差真拦路、已知良性表控、仅尾句柄常量偏移的良性 renumber、以及需以原生最简图三方对齐确认的 oracle 污染，给出逐帧分类表。
+      en: |-
+        Enumerate every divergent frame between these two DWGs with ProbeTool firstdiff (maxPrint=0):
+        our output: {{path to ours.dwg}}
+        oracle: {{path to oracle.dwg}}
+        Classify each frame per the skill criteria: size-diff real blockers, known-benign table controls,
+        benign renumbering (data identical, constant tail-handle offset), and oracle contamination
+        confirmed by three-way alignment against the native minimal drawing. Output a per-frame classification table.
+  - id: oracle-regen-diff
+    title:
+      zh: 重生成 oracle 对拍
+      en: Regenerate Oracle & Diff
+    description:
+      zh: 怀疑 oracle 夹具过期时，用 ODA 直转源图重生成并与我方产物逐帧对拍
+      en: When the oracle fixture may be stale, regenerate it via direct ODA conversion and diff against our output
+    prompt:
+      zh: |-
+        设好 ODA_EXE 后，用 ODAFileConverter 把 最简各版本图纸/{{源版本对应年份}}.dwg 直转为 {{目标格式（如 ACAD2007）}} 重生成 oracle，
+        再用 CLI --convert {{目标魔数（如 AC1021）}} 产我方帧，firstdiff 全帧枚举比对，
+        若既有 oracle 与新产物大小一致请说明差异，并给出分类台账。
+      en: |-
+        With ODA_EXE set, use ODAFileConverter to convert 最简各版本图纸/{{source year file}}.dwg directly to {{target format, e.g. ACAD2007}} as a fresh oracle,
+        produce our frame via CLI --convert {{target magic, e.g. AC1021}}, then run firstdiff in full-enumeration mode.
+        Note any size match between the existing oracle and the fresh output, and deliver the classified ledger.
