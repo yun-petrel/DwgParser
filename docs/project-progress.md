@@ -24,10 +24,13 @@
 
 落地计划（车道划分、文件所有权、波次、验收门）见 `docs/entity-refactor-plan.md`。
 
-**进度**：W0 已完成（2026-11-04）——三契约落位（`IEntityCollection`/`IEntityCodec`+Registry/
-`IDrawDevice.PushState/PopState`）、G1 构建门首次转绿（Rendering/CLI 补 windows TFM 等三处既有门修复）、
-基线 3 fixture 存 `out/base/`（JSON/SVG/同版本转换逐字节可比，清单 manifest.json）。下一步 W1：
-L1a 曲线/几何族拆分 + L4 集合层接入 + L5a 渲染三路合一。冻结偏差与裁定见计划档 §3.1。
+**进度**：W0 完成（2026-11-04，三契约+G1 转绿+基线可比）。W1 完成（2026-11-05，串行三车道，
+commit 403b186/ae77205/6532157/bf853b1）：L4 EntityCollection 接入（块/空间视图；图层表因 ILayer≠IEntity
+遗留）；L5a 渲染分派合一（②③ 统一经 `EntityKindRegistry.RasterKindOf`，SoftwareRasterizer 13 painter
+dict + 显式 SkipUnrasterized 漏斗）；L1a EntityBase 抽取 + 曲线/几何族四模型实存储 + DwgEntity 转发保
+API。**门教训**：G1 必须用 `--no-incremental` 跑（增量构建曾掩盖 9 处既有 nullable 警告，已修）；
+PNG 字节门仅同会话有效（GDI 文本反锯齿跨会话漂移 ~14px，几何区零漂移），跨会话用 JSON/SVG/PNG-L/convert。
+下一步 W2：L1b（文字/表格/标注族）+ L2（读侧注册表替换三元链）+ L5b（补 Core 注册表 6 类 null + 全 kind 表态）。
 
 ## 2026-09-29 HATCH 渐变块跨版本处理修复
 
