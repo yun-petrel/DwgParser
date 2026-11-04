@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# 重构基线与产物（docs/entity-refactor-plan.md W0）
+out/

@@ -60,6 +60,8 @@ public sealed partial class FrameRenderer
             or DwgEntityType.Trace
             => throw new InvalidOperationException(
                 $"EntityKindRegistry.RasterPainterKeys 不应包含 {key}（它没有位图绘制实现）"),
+        _ => throw new InvalidOperationException(
+            $"EntityKindRegistry.RasterPainterKeys 不应包含 {key}（它没有位图绘制实现）"),
     };
 
     private static void PaintLine(DwgEntity e, RasterCtx c)

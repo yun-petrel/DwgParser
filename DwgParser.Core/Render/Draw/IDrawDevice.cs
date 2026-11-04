@@ -23,4 +23,8 @@ public interface IDrawDevice
     void DrawPath(ReadOnlyMemory<PathSeg> segs, bool closed, StrokeStyle stroke, FillStyle fill, PathLayout layout);
 
     void DrawText(TextRequest text);
+
+    void PushState() { }
+
+    void PopState() { }
 }

@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using DwgParser.Core.Render;
 
@@ -43,6 +42,5 @@ public static class RenderingRuntime
         catch { return false; }
     }
 
-    [ModuleInitializer]
-    internal static void AutoInstall() => EnsureSystemFonts();
+    static RenderingRuntime() => EnsureSystemFonts();
 }

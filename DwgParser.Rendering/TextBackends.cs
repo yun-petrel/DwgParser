@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using DwgParser.Core.Render;
@@ -19,6 +18,5 @@ public static class TextBackends
     public static ITextShapeBackend? ShapeBackend
         => Current as ITextShapeBackend;
 
-    [ModuleInitializer]
-    internal static void AutoInstall() => RenderingRuntime.EnsureSystemFonts();
+    static TextBackends() => RenderingRuntime.EnsureSystemFonts();
 }
