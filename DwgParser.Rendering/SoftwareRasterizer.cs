@@ -9,6 +9,7 @@ public sealed class SoftwareRasterizer
     private readonly PixelBuffer _buffer;
     private readonly int _margin;
     private readonly int _lineThickness;
+    private readonly Dictionary<DwgEntityType, Action<SoftPaint>> _painters;
 
     public SoftwareRasterizer(int width = 2048, int height = 2048, int? margin = null,
         int lineThickness = 1)
@@ -16,6 +17,7 @@ public sealed class SoftwareRasterizer
         _buffer = new PixelBuffer(width, height);
         _margin = margin ?? FrameRenderer.ViewportMarginPx(width, height);
         _lineThickness = lineThickness;
+        _painters = BuildPainters();
     }
 
     public PixelBuffer Buffer => _buffer;
@@ -71,160 +73,186 @@ public sealed class SoftwareRasterizer
         return (Tx, Ty, scale);
     }
 
+    private readonly record struct SoftPaint(
+        DwgEntity E, RenderContext? Ctx,
+        Func<double, double, double> Tx, Func<double, double, double> Ty,
+        double Scale, byte Cr, byte Cg, byte Cb, int Thick);
+
+    private Dictionary<DwgEntityType, Action<SoftPaint>> BuildPainters() => new()
+    {
+        [DwgEntityType.Line] = PaintLine,
+        [DwgEntityType.Circle] = PaintCircle,
+        [DwgEntityType.Arc] = PaintArc,
+        [DwgEntityType.Ellipse] = PaintEllipseKind,
+        [DwgEntityType.Point] = PaintPoint,
+        [DwgEntityType.Text] = PaintText,
+        [DwgEntityType.Solid] = PaintSolid,
+        [DwgEntityType.LwPolyline] = PaintPolyline,
+        [DwgEntityType.PointSequence] = PaintPointSequence,
+        [DwgEntityType.Hatch] = PaintHatch,
+        [DwgEntityType.Dimension] = PaintDimension,
+        [DwgEntityType.Viewport] = PaintViewport,
+        [DwgEntityType.Insert] = PaintInsert,
+    };
+
     private void RenderDwgEntity(DwgEntity e, RenderContext? ctx,
         Func<double, double, double> Tx, Func<double, double, double> Ty, double scale)
     {
         var (cr, cg, cb) = ParseColor(ctx?.EntityColor(e) ?? RenderContext.Color(e));
         int thick = Math.Max(1, _lineThickness);
+        if (_painters.TryGetValue(EntityKindRegistry.RasterKindOf(e.Kind), out var paint))
+            paint(new SoftPaint(e, ctx, Tx, Ty, scale, cr, cg, cb, thick));
+        else
+            SkipUnrasterized(EntityKindRegistry.RasterKindOf(e.Kind));
+    }
 
-        switch (e.Kind)
+    private static void SkipUnrasterized(DwgEntityType rasterKind) { }
+
+    private void PaintLine(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        _buffer.DrawLine(PxK(Tx, e.Start.X, e.Start.Y), PyK(Ty, e.Start.X, e.Start.Y),
+            PxK(Tx, e.End.X, e.End.Y), PyK(Ty, e.End.X, e.End.Y), cr, cg, cb, thick);
+    }
+
+    private void PaintCircle(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var scale = c.Scale; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        _buffer.DrawCircle(PxK(Tx, e.Center.X, e.Center.Y), PyK(Ty, e.Center.X, e.Center.Y),
+            Math.Max(1, e.Radius * scale), cr, cg, cb, thick);
+    }
+
+    private void PaintArc(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var scale = c.Scale; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        double a1 = e.StartAngle, a2 = e.EndAngle;
+        if (e.ExtrusionZ < 0) { a1 = -a1; a2 = -a2; }
+        _buffer.DrawArc(PxK(Tx, e.Center.X, e.Center.Y), PyK(Ty, e.Center.X, e.Center.Y),
+            Math.Max(1, e.Radius * scale), a1, a2,
+            cr, cg, cb, thick);
+    }
+
+    private void PaintEllipseKind(SoftPaint c)
+        => RenderEllipse(c.E, c.Tx, c.Ty, c.Scale, c.Cr, c.Cg, c.Cb, c.Thick);
+
+    private void PaintPoint(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb;
+        _buffer.FillCircle(Px(Tx, e.Start.X, e.Start.Y), Py(Ty, e.Start.X, e.Start.Y),
+            3, cr, cg, cb);
+    }
+
+    private void PaintText(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb;
+        string text = RenderContext.SanitizeText(e.TextValue);
+        if (!string.IsNullOrWhiteSpace(text))
+            _buffer.DrawText(Px(Tx, e.Start.X, e.Start.Y), Py(Ty, e.Start.X, e.Start.Y),
+                text, cr, cg, cb, 2);
+    }
+
+    private void PaintSolid(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb;
+        if (e.Corners.Count < 3) return;
+        var pts = new System.Collections.Generic.List<(int, int)>();
+        foreach (var corner in e.Corners)
+            pts.Add((Px(Tx, corner.X, corner.Y), Py(Ty, corner.X, corner.Y)));
+        _buffer.FillPolygon(pts, cr, cg, cb, 80);
+    }
+
+    private void PaintPolyline(SoftPaint c)
+        => DrawPolylinePng(c.E, c.Tx, c.Ty, c.Scale, c.Cr, c.Cg, c.Cb, c.Thick);
+
+    private void PaintPointSequence(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        for (int i = 1; i < e.Points.Count; i++)
+            _buffer.DrawLine(
+                PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
+                PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
+                cr, cg, cb, thick);
+    }
+
+    private void PaintHatch(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        var rings = e is HatchEntity he
+            ? HatchGeometry.BoundaryRings(he)
+            : new System.Collections.Generic.List<DwgParser.Core.Objects.Vec2[]>();
+        if (rings.Count == 0)
         {
-            case DwgEntityType.Line:
-            case DwgEntityType.Ray:
-            case DwgEntityType.XLine:
-                _buffer.DrawLine(PxK(Tx, e.Start.X, e.Start.Y), PyK(Ty, e.Start.X, e.Start.Y),
-                    PxK(Tx, e.End.X, e.End.Y), PyK(Ty, e.End.X, e.End.Y), cr, cg, cb, thick);
-                break;
-
-            case DwgEntityType.Circle:
-                _buffer.DrawCircle(PxK(Tx, e.Center.X, e.Center.Y), PyK(Ty, e.Center.X, e.Center.Y),
-                    Math.Max(1, e.Radius * scale), cr, cg, cb, thick);
-                break;
-
-            case DwgEntityType.Arc:
-                {
-                    double a1 = e.StartAngle, a2 = e.EndAngle;
-                    if (e.ExtrusionZ < 0) { a1 = -a1; a2 = -a2; }
-                    _buffer.DrawArc(PxK(Tx, e.Center.X, e.Center.Y), PyK(Ty, e.Center.X, e.Center.Y),
-                        Math.Max(1, e.Radius * scale), a1, a2,
-                        cr, cg, cb, thick);
-                }
-                break;
-
-            case DwgEntityType.Ellipse:
-                RenderEllipse(e, Tx, Ty, scale, cr, cg, cb, thick);
-                break;
-
-            case DwgEntityType.Point:
-                _buffer.FillCircle(Px(Tx, e.Start.X, e.Start.Y), Py(Ty, e.Start.X, e.Start.Y),
-                    3, cr, cg, cb);
-                break;
-
-            case DwgEntityType.Text:
-            case DwgEntityType.MText:
-            case DwgEntityType.AttDef:
-            case DwgEntityType.Attrib:
+            if (e.SolidFill && e.Points.Count >= 3)
             {
-                string text = RenderContext.SanitizeText(e.TextValue);
-                if (!string.IsNullOrWhiteSpace(text))
-                    _buffer.DrawText(Px(Tx, e.Start.X, e.Start.Y), Py(Ty, e.Start.X, e.Start.Y),
-                        text, cr, cg, cb, 2);
-                break;
+                var fillPts = new System.Collections.Generic.List<(int, int)>();
+                foreach (var p in e.Points)
+                    fillPts.Add((Px(Tx, p.X, p.Y), Py(Ty, p.X, p.Y)));
+                _buffer.FillPolygon(fillPts, cr, cg, cb, HatchGeometry.SolidFillAlpha);
             }
-
-            case DwgEntityType.Solid:
-            case DwgEntityType.Trace:
+            for (int i = 1; i < e.Points.Count; i++)
+                _buffer.DrawLine(
+                    PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
+                    PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
+                    cr, cg, cb, thick);
+            return;
+        }
+        foreach (var ring in rings)
+        {
+            if (e.SolidFill && ring.Length >= 3)
             {
-                if (e.Corners.Count < 3) break;
-                var pts = new System.Collections.Generic.List<(int, int)>();
-                foreach (var c in e.Corners)
-                    pts.Add((Px(Tx, c.X, c.Y), Py(Ty, c.X, c.Y)));
-                _buffer.FillPolygon(pts, cr, cg, cb, 80);
-                break;
+                var fillPts = new System.Collections.Generic.List<(int, int)>(ring.Length);
+                foreach (var p in ring)
+                    fillPts.Add((Px(Tx, p.X, p.Y), Py(Ty, p.X, p.Y)));
+                _buffer.FillPolygon(fillPts, cr, cg, cb, HatchGeometry.SolidFillAlpha);
             }
-
-            case DwgEntityType.LwPolyline:
-            case DwgEntityType.Polyline2D:
-                DrawPolylinePng(e, Tx, Ty, scale, cr, cg, cb, thick);
-                break;
-
-            case DwgEntityType.Leader:
-            case DwgEntityType.Spline:
-                for (int i = 1; i < e.Points.Count; i++)
-                    _buffer.DrawLine(
-                        PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
-                        PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
-                        cr, cg, cb, thick);
-                break;
-
-            case DwgEntityType.Hatch:
+            for (int i = 0; i < ring.Length; i++)
             {
-                var rings = e is HatchEntity he
-                    ? HatchGeometry.BoundaryRings(he)
-                    : new System.Collections.Generic.List<DwgParser.Core.Objects.Vec2[]>();
-                if (rings.Count == 0)
-                {
-                    if (e.SolidFill && e.Points.Count >= 3)
-                    {
-                        var fillPts = new System.Collections.Generic.List<(int, int)>();
-                        foreach (var p in e.Points)
-                            fillPts.Add((Px(Tx, p.X, p.Y), Py(Ty, p.X, p.Y)));
-                        _buffer.FillPolygon(fillPts, cr, cg, cb, HatchGeometry.SolidFillAlpha);
-                    }
-                    for (int i = 1; i < e.Points.Count; i++)
-                        _buffer.DrawLine(
-                            PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
-                            PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
-                            cr, cg, cb, thick);
-                    break;
-                }
-                foreach (var ring in rings)
-                {
-                    if (e.SolidFill && ring.Length >= 3)
-                    {
-                        var fillPts = new System.Collections.Generic.List<(int, int)>(ring.Length);
-                        foreach (var p in ring)
-                            fillPts.Add((Px(Tx, p.X, p.Y), Py(Ty, p.X, p.Y)));
-                        _buffer.FillPolygon(fillPts, cr, cg, cb, HatchGeometry.SolidFillAlpha);
-                    }
-                    for (int i = 0; i < ring.Length; i++)
-                    {
-                        var a = ring[i];
-                        var b = ring[(i + 1) % ring.Length];
-                        _buffer.DrawLine(PxK(Tx, a.X, a.Y), PyK(Ty, a.X, a.Y),
-                                         PxK(Tx, b.X, b.Y), PyK(Ty, b.X, b.Y), cr, cg, cb, thick);
-                    }
-                }
-                foreach (var (pa, pb) in HatchGeometry.PatternSegments((HatchEntity)e))
-                    _buffer.DrawLine(PxK(Tx, pa.X, pa.Y), PyK(Ty, pa.X, pa.Y),
-                                     PxK(Tx, pb.X, pb.Y), PyK(Ty, pb.X, pb.Y), cr, cg, cb, thick);
-                break;
+                var a = ring[i];
+                var b = ring[(i + 1) % ring.Length];
+                _buffer.DrawLine(PxK(Tx, a.X, a.Y), PyK(Ty, a.X, a.Y),
+                                 PxK(Tx, b.X, b.Y), PyK(Ty, b.X, b.Y), cr, cg, cb, thick);
             }
+        }
+        foreach (var (pa, pb) in HatchGeometry.PatternSegments((HatchEntity)e))
+            _buffer.DrawLine(PxK(Tx, pa.X, pa.Y), PyK(Ty, pa.X, pa.Y),
+                             PxK(Tx, pb.X, pb.Y), PyK(Ty, pb.X, pb.Y), cr, cg, cb, thick);
+    }
 
-            case DwgEntityType.Dimension:
-                if (e.Points.Count >= 2)
-                {
-                    for (int i = 1; i < e.Points.Count; i++)
-                        _buffer.DrawLine(
-                            PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
-                            PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
-                            cr, cg, cb, thick);
-                }
-                break;
-
-            case DwgEntityType.Viewport:
-                if (e.VportWidth > 0 && e.Height > 0)
-                {
-                    double hw = e.VportWidth / 2, hh = e.Height / 2;
-                    var corners = new System.Collections.Generic.List<(double, double)>
-                    {
-                        (PxK(Tx, e.Center.X - hw, e.Center.Y - hh), PyK(Ty, e.Center.X - hw, e.Center.Y - hh)),
-                        (PxK(Tx, e.Center.X + hw, e.Center.Y - hh), PyK(Ty, e.Center.X + hw, e.Center.Y - hh)),
-                        (PxK(Tx, e.Center.X + hw, e.Center.Y + hh), PyK(Ty, e.Center.X + hw, e.Center.Y + hh)),
-                        (PxK(Tx, e.Center.X - hw, e.Center.Y + hh), PyK(Ty, e.Center.X - hw, e.Center.Y + hh)),
-                    };
-                    for (int i = 0; i < 4; i++)
-                        _buffer.DrawLine(corners[i].Item1, corners[i].Item2,
-                            corners[(i + 1) % 4].Item1, corners[(i + 1) % 4].Item2,
-                            cr, cg, cb, thick);
-                }
-                break;
-
-            case DwgEntityType.Insert:
-                DrawInsert(e, ctx, Tx, Ty, scale, cr, cg, cb, thick, 0);
-                break;
+    private void PaintDimension(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        if (e.Points.Count >= 2)
+        {
+            for (int i = 1; i < e.Points.Count; i++)
+                _buffer.DrawLine(
+                    PxK(Tx, e.Points[i - 1].X, e.Points[i - 1].Y), PyK(Ty, e.Points[i - 1].X, e.Points[i - 1].Y),
+                    PxK(Tx, e.Points[i].X, e.Points[i].Y), PyK(Ty, e.Points[i].X, e.Points[i].Y),
+                    cr, cg, cb, thick);
         }
     }
+
+    private void PaintViewport(SoftPaint c)
+    {
+        var e = c.E; var Tx = c.Tx; var Ty = c.Ty; var cr = c.Cr; var cg = c.Cg; var cb = c.Cb; var thick = c.Thick;
+        if (e.VportWidth > 0 && e.Height > 0)
+        {
+            double hw = e.VportWidth / 2, hh = e.Height / 2;
+            var corners = new System.Collections.Generic.List<(double, double)>
+            {
+                (PxK(Tx, e.Center.X - hw, e.Center.Y - hh), PyK(Ty, e.Center.X - hw, e.Center.Y - hh)),
+                (PxK(Tx, e.Center.X + hw, e.Center.Y - hh), PyK(Ty, e.Center.X + hw, e.Center.Y - hh)),
+                (PxK(Tx, e.Center.X + hw, e.Center.Y + hh), PyK(Ty, e.Center.X + hw, e.Center.Y + hh)),
+                (PxK(Tx, e.Center.X - hw, e.Center.Y + hh), PyK(Ty, e.Center.X - hw, e.Center.Y + hh)),
+            };
+            for (int i = 0; i < 4; i++)
+                _buffer.DrawLine(corners[i].Item1, corners[i].Item2,
+                    corners[(i + 1) % 4].Item1, corners[(i + 1) % 4].Item2,
+                    cr, cg, cb, thick);
+        }
+    }
+
+    private void PaintInsert(SoftPaint c)
+        => DrawInsert(c.E, c.Ctx, c.Tx, c.Ty, c.Scale, c.Cr, c.Cg, c.Cb, c.Thick, 0);
 
     private static int Px(Func<double, double, double> T, double x, double y) => FrameRenderer.ClampPx(T(x, y));
     private static int Py(Func<double, double, double> T, double x, double y) => FrameRenderer.ClampPx(T(x, y));
