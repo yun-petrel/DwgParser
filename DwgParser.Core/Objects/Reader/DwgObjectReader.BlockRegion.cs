@@ -6,7 +6,7 @@ public static partial class DwgObjectReader
 {
     public sealed partial class WalkResult
     {
-        public BlockTable Blocks => _blocks ??= new BlockTable(BlockRegions, Entities, ModelSpaceHandle, PaperSpaceHandle);
+        public BlockTable Blocks => _blocks ??= new BlockTable(BlockRegions, EntitySet, ModelSpaceHandle, PaperSpaceHandle);
 
         private BlockTable? _blocks;
     }

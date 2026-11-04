@@ -20,6 +20,10 @@ public static partial class DwgObjectReader
     {
         public List<DwgEntity> Entities { get; } = new();
 
+        public EntityCollection EntitySet => _entitySet ??= new EntityCollection(Entities);
+
+        private EntityCollection? _entitySet;
+
         public List<DwgObjectRecord> Records { get; } = new();
 
         public byte[]? SourceData { get; internal set; }

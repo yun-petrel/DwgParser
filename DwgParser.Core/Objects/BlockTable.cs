@@ -7,11 +7,11 @@ public sealed class BlockTable : IReadOnlyList<DwgObjectReader.BlockRegion>
     private readonly List<DwgObjectReader.BlockRegion> _blocks;
     private readonly Dictionary<ulong, DwgObjectReader.BlockRegion> _byHandle;
     private readonly Dictionary<string, List<DwgObjectReader.BlockRegion>> _byName;
-    private readonly Dictionary<ulong, List<IEntity>> _byOwner;
+    private readonly EntityCollection _entities;
 
     internal BlockTable(
         IEnumerable<DwgObjectReader.BlockRegion> regions,
-        IEnumerable<IEntity> entities,
+        EntityCollection entities,
         ulong modelSpaceHandle,
         ulong paperSpaceHandle)
     {
@@ -26,15 +26,7 @@ public sealed class BlockTable : IReadOnlyList<DwgObjectReader.BlockRegion>
             list.Add(r);
         }
 
-        _byOwner = new Dictionary<ulong, List<IEntity>>();
-        foreach (var e in entities)
-        {
-            if (e is null || e.OwnerHandle == 0) continue;
-            if (!_byOwner.TryGetValue(e.OwnerHandle, out var list))
-                _byOwner[e.OwnerHandle] = list = new List<IEntity>();
-            list.Add(e);
-        }
-
+        _entities = entities;
         ModelSpaceHandle = modelSpaceHandle;
         PaperSpaceHandle = paperSpaceHandle;
     }
@@ -68,9 +60,10 @@ public sealed class BlockTable : IReadOnlyList<DwgObjectReader.BlockRegion>
     public bool Contains(string name) => name is not null && _byName.ContainsKey(name);
 
     public IReadOnlyList<IEntity> EntitiesOf(ulong blockHeaderHandle)
-        => _byOwner.TryGetValue(blockHeaderHandle, out var list)
-            ? list
-            : Array.Empty<IEntity>();
+    {
+        var src = _entities.OfOwner(blockHeaderHandle);
+        return src as IReadOnlyList<IEntity> ?? src.ToArray();
+    }
 
     public IReadOnlyList<IEntity> ModelSpaceEntities => EntitiesOf(ModelSpaceHandle);
 

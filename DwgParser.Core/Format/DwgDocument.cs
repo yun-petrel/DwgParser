@@ -10,7 +10,6 @@ public sealed class DwgDocument
     private bool _acdsAttached;
     private DwgStyleCatalog? _styles;
     private Dictionary<ulong, DwgObjectRecord>? _recordsByHandle;
-    private Dictionary<ulong, IEntity>? _entitiesByHandle;
 
     public string FilePath => _file.FilePath ?? string.Empty;
     public long FileSize => _file.FileSize;
@@ -48,10 +47,7 @@ public sealed class DwgDocument
     }
 
     public IEntity? FindEntity(ulong handle)
-    {
-        _entitiesByHandle ??= BuildEntityIndex(GetObjects().Entities);
-        return _entitiesByHandle.TryGetValue(handle, out var e) ? e : null;
-    }
+        => GetObjects().EntitySet.Find(handle);
 
     public IReadOnlyList<IEntity> UnmappedEntities => _unmapped ??= ComputeUnmapped();
 
@@ -75,14 +71,6 @@ public sealed class DwgDocument
         var map = new Dictionary<ulong, DwgObjectRecord>(records.Count);
         foreach (var r in records)
             if (r.Handle != 0) map.TryAdd(r.Handle, r);
-        return map;
-    }
-
-    private static Dictionary<ulong, IEntity> BuildEntityIndex(List<DwgEntity> entities)
-    {
-        var map = new Dictionary<ulong, IEntity>(entities.Count);
-        foreach (var e in entities)
-            if (e.Handle != 0) map.TryAdd(e.Handle, e);
         return map;
     }
 
@@ -147,7 +135,6 @@ public sealed class DwgDocument
         Objects = null;
         _styles = null;
         _recordsByHandle = null;
-        _entitiesByHandle = null;
         _unmapped = null;
         _acdsAttached = false;
     }
