@@ -274,7 +274,7 @@ internal static partial class R2004SectionReencoder
         if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
         byte[] oracleHead = File.ReadAllBytes(path);
         if (oracleHead.Length < 0x80 || built.Length < 0x80) return;
-        string verStr = targetVersion switch
+        string? verStr = targetVersion switch
         {
             DwgVersion.AC1024 => "AC1024",
             DwgVersion.AC1027 => "AC1027",

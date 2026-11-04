@@ -40,7 +40,7 @@ internal sealed class VisualStyleCarryAc1018ToAc1021 : VisualStyleCarryPlan
             CopyBits(body, src, from + 32, (int)(descStart - from - 32));
         }
 
-        string desc = ReadDescFromCapture(src, descStart, styleStart);
+        string? desc = ReadDescFromCapture(src, descStart, styleStart);
         if (desc == null) return false;
 
         void CopySpan(int i) => CopyBits(body, src, sp[i * 2], (int)(sp[i * 2 + 1] - sp[i * 2]));

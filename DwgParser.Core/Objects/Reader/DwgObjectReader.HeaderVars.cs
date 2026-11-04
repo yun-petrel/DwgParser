@@ -16,9 +16,11 @@ public static partial class DwgObjectReader
     {
         var header = sections.FirstOrDefault(s => s.Name == "Header" && s.Data is { Length: > 32 });
         if (header is null) return;
+        var headerData = header.Data;
+        if (headerData is null) return;
         try
         {
-            var v = HeaderVarsCodec.Decode(header.Data, version);
+            var v = HeaderVarsCodec.Decode(headerData, version);
             result.Ltscale = PositiveOr1(v, "LTSCALE");
             result.Celtscale = PositiveOr1(v, "CELTSCALE");
         }

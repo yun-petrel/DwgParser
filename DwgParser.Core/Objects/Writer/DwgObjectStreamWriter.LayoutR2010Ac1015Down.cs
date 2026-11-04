@@ -41,7 +41,7 @@ public static partial class DwgObjectStreamWriter
             if (DebugTrace)
                 System.Console.Error.WriteLine(
                     $"LY1015DN h={rec.Handle:X} 82 {rec.SourceVersion}→AC1015 nr={nr} " +
-                    $"mid={midEnd}位 body={body.BitPosition} hs={hw.BitPosition}");
+                    $"mid={midEnd}位 body={body.BitPosition} hs={hw!.BitPosition}");
             return true;
         }
         catch { return false; }
@@ -84,7 +84,7 @@ public static partial class DwgObjectStreamWriter
             if (DebugTrace)
                 System.Console.Error.WriteLine(
                     $"LY21DN h={rec.Handle:X} 82 AC1021→AC1015 nr={nr} " +
-                    $"mid={midEnd}位 body={body.BitPosition} hs={hw.BitPosition}@{dataEnd}");
+                    $"mid={midEnd}位 body={body.BitPosition} hs={hw!.BitPosition}@{dataEnd}");
             return true;
         }
         catch { return false; }

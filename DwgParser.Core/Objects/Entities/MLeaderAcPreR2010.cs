@@ -13,7 +13,7 @@ internal sealed class MLeaderAcPreR2010 : MLeaderEntity
 
             bool cmc = record == null || record.SourceVersion >= DwgVersion.AC1018;
             if (!cmc)
-                ShortCmcSink = record.MLeaderShortCmcBits ??= new List<long>();
+                ShortCmcSink = record!.MLeaderShortCmcBits ??= new List<long>();
             else
                 ShortCmcSink = null;
 

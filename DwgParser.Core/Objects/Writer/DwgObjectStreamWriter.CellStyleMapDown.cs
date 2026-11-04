@@ -114,7 +114,7 @@ public static partial class DwgObjectStreamWriter
         if (DebugTrace)
             System.Console.Error.WriteLine(
                 $"CSM15A21 h={rec.Handle:X} {rec.SourceVersion}→AC1015 body={body.BitPosition} " +
-                $"hs={hs.BitPosition}位@ins{insertAt} srcXdicMiss={srcXdicMissing}");
+                $"hs={hs!.BitPosition}位@ins{insertAt} srcXdicMiss={srcXdicMissing}");
         return true;
     }
 
