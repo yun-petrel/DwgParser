@@ -16,52 +16,39 @@ public readonly record struct Vec2(double X, double Y);
 
 public readonly record struct Vec3(double X, double Y, double Z);
 
-public class DwgEntity : IEntity
+public class DwgEntity : EntityBase, IEntity
 {
-    public string LtypeName { get; set; } = "";
-    public DwgEntityType Kind { get; set; }
     EntityKind IEntity.Kind => ToEntityKind(Kind);
-    public ulong Handle { get; set; }
-    public short ColorIndex { get; set; } = 256;
-    public uint TrueColor { get; set; }
-    public bool HasTrueColor { get; set; }
-    public uint ColorAlpha { get; set; }
-    public bool HasColorAlpha { get; set; }
-    public string ColorName { get; set; } = "";
-    public string ColorBookName { get; set; } = "";
-    public byte EntMode { get; set; }
 
-    public byte[]? AcisData { get; set; }
+    private LineGeometry? _lineGeo;
+    private RadialGeometry? _radialGeo;
+    private PolylineGeometry? _polyGeo;
+    private CornersGeometry? _cornersGeo;
 
-    public Vec3[]? AcisVertices { get; set; }
+    private LineGeometry LineGeo => _lineGeo ??= new();
+    private RadialGeometry RadialGeo => _radialGeo ??= new();
+    private PolylineGeometry PolyGeo => _polyGeo ??= new();
+    private CornersGeometry CornersGeo => _cornersGeo ??= new();
 
-    public ulong OwnerHandle { get; set; }
+    public Vec2 Start { get => LineGeo.Start; set => LineGeo.Start = value; }
+    public Vec2 End { get => LineGeo.End; set => LineGeo.End = value; }
 
-    public ulong LayerHandle { get; set; }
+    public double StartZ { get => LineGeo.StartZ; set => LineGeo.StartZ = value; }
 
-    public double ExtrusionZ { get; set; } = 1.0;
-    public double Thickness { get; set; }
-    public double Elevation { get; set; }
+    public double EndZ { get => LineGeo.EndZ; set => LineGeo.EndZ = value; }
 
-    public Vec2 Start { get; set; }
-    public Vec2 End { get; set; }
-
-    public double StartZ { get; set; }
-
-    public double EndZ { get; set; }
-
-    public Vec2 Center { get; set; }
-    public double Radius { get; set; }
-    public double StartAngle { get; set; }
-    public double EndAngle { get; set; }
+    public Vec2 Center { get => RadialGeo.Center; set => RadialGeo.Center = value; }
+    public double Radius { get => RadialGeo.Radius; set => RadialGeo.Radius = value; }
+    public double StartAngle { get => RadialGeo.StartAngle; set => RadialGeo.StartAngle = value; }
+    public double EndAngle { get => RadialGeo.EndAngle; set => RadialGeo.EndAngle = value; }
 
     public string TextValue { get; set; } = "";
     public double Height { get; set; }
     public double Rotation { get; set; }
     public double WidthFactor { get; set; } = 1.0;
 
-    public List<Vec2> Points { get; } = new();
-    public List<double> Bulges { get; } = new();
+    public List<Vec2> Points => PolyGeo.Points;
+    public List<double> Bulges => PolyGeo.Bulges;
     public ulong BlockHeaderHandle { get; set; }
     public bool HasAttributes { get; set; }
     public double ScaleX { get; set; } = 1.0;
@@ -73,22 +60,22 @@ public class DwgEntity : IEntity
            * Matrix.Rotation(Rotation)
            * Matrix.Scale(ScaleX, ScaleY);
 
-    public double ConstantWidth { get; set; }
+    public double ConstantWidth { get => PolyGeo.ConstantWidth; set => PolyGeo.ConstantWidth = value; }
 
-    public List<Vec2> Corners { get; } = new();
+    public List<Vec2> Corners => CornersGeo.Corners;
 
-    public bool SolidFill { get; set; }
+    public bool SolidFill { get => CornersGeo.SolidFill; set => CornersGeo.SolidFill = value; }
 
     public string Name { get; set; } = "";
 
 
-    public bool Closed { get; set; }
+    public bool Closed { get => PolyGeo.Closed; set => PolyGeo.Closed = value; }
 
-    public List<double> VertexStartWidths { get; } = new();
+    public List<double> VertexStartWidths => PolyGeo.VertexStartWidths;
 
-    public List<double> VertexEndWidths { get; } = new();
+    public List<double> VertexEndWidths => PolyGeo.VertexEndWidths;
 
-    public bool PlineGen { get; set; }
+    public bool PlineGen { get => PolyGeo.PlineGen; set => PolyGeo.PlineGen = value; }
 
     public string Tag { get; set; } = "";
 
@@ -155,8 +142,6 @@ public class DwgEntity : IEntity
 
     public short TableRows { get; set; }
     public short TableColumns { get; set; }
-
-    public bool IsErased { get; set; }
 
     public static EntityKind ToEntityKind(DwgEntityType k) => k switch
     {
