@@ -103,6 +103,9 @@
 | Insert 表态 | 归入结构性 null 组（块内容由走查渲染、自身无位图绘制，光栅管线从未到达 Insert）——注册表内不再有「未表态」null |
 | 工厂 | 33 个 `Decode` 重载删除；`Create*` 保留（codec 调用 + FrameRenderer.CreateTable / Geometry.CreateEntityHandleStream 外部在用） |
 | L1b 共用字段 | `Rotation`/`Height`/`WidthFactor` 被椭圆/插入/标注兜底多族共用，**不**入单族模型，留 W3 裁定归属 |
+| W3 共用字段裁定（2026-11-06） | `Height`/`Rotation`/`WidthFactor`/`Name` 实测消费方跨 文字/插入/视口/标注兜底/JSON 多族（EntityHitTest/EntityInspector/InsertPlacement/PaintViewport/Dimension 兜底）——**留守 `DwgEntity` 作为跨族公共属性**，不入任何单族模型；其余字段全部下沉族模型（Insert/Leader/Viewport 三族 L1c-a，累计 10 个族模型） |
+| W3 SVG 辅助迁移 | `DwgEntity` 的 Render* SVG 辅助方法（328 行）整体迁 `Core/Render/EntitySvg.cs`（方法体逐字搬运、实例访问加 `e.` 前缀、4 个子类调用点改写）；`TableEntity.Svg.cs` 迁出实体目录（partial 类 namespace 不变）——`DwgEntity` 443→198 行，只剩公共属性 + 转发 + IEntity/ToSvg 路由 |
+| W3 G6 前置修复 | `PngDrawDevice` 反向引用 `FrameRenderer`（MakeTransform/ClampPx/ParseColor）逐字下沉 `Core/Render/Draw/WorldTransform.cs`+`PxMath`，FrameRenderer 留委托保内部调用点——G6 可执行化后一次通过 |
 
 **W2 验证记录**：3 fixture JSON/SVG/convert/PNG 四门与基线全等；`OdWriteEx XRef.dwg`（2 Ellipse）
 pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E:\tmp\dwgp-ab`（程序集名
@@ -132,7 +135,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 | W0 | 1 手（串行） | L0 契约冻结 + 基线快照（`--json`/`--svg`/`--convert` 存 `out/base/`） | 3 接口编译通过，基线可比 |
 | W1 | 3 手 | L1a（曲线/几何族）+ L4 + L5a（三路合一，只做分派不改绘制） | 集合层可用、单一分派 ✅ 2026-11-05（串行执行：ae77205/6532157/bf853b1） |
 | W2 | 3 手 | L1b（文字/表格/标注族）+ L2（注册表）+ L5b（补 6 类 renderer） | 三元链消失、覆盖 100% ✅ 2026-11-06（0416a47/55f2ce9/9c46f2f） |
-| W3 | 2 手 | L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开） | `DwgEntity` 只剩公共属性 |
+| W3 | 2 手 | L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开） | `DwgEntity` 只剩公共属性 ✅ 2026-11-06（2f30942/4a3298b/d52ccac；串行执行） |
 | W4 | 1 手 | 死路径删除（旧 painter 表、`SoftwareRasterizer` switch）、`docs/project-progress.md` 收口 | 门全绿 / 或明确 BLOCKED 清单 |
 
 ## 6. 验收门（可执行）
@@ -161,5 +164,5 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 - **M1**（W1 末）`EntityCollection` 上线，块/空间/图层视图全走它 ✅ 2026-11-05（块/空间走它；图层表元素类型 ILayer≠IEntity 未接入，遗留 W2）
 - **M2**（W2 末）读侧注册表替换完成，新增实体类型只碰一处 ✅ 2026-11-06（0416a47）
 - **M3**（W2 末）渲染单路 + 全 kind 表态（W1 已完成分派合一：②③ 均经 `EntityKindRegistry.RasterKindOf` 单一决议；W2 ① Core 注册表全 kind 表态达成 55f2ce9——5 类补齐 + Insert 结构性表态；**渲染单路切换**＝RenderEntity 的 painter 回退删除，留 W4，届时旧 painter 表一并删）
-- **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立（W2 L1b 已落文字/标注/表格三族 9c46f2f；Rotation/Height/WidthFactor 共用字段归属待裁定）
+- **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立 ✅ 2026-11-06（4a3298b：443→198 行；10 个族模型实存储 + 转发保 API；Height/Rotation/WidthFactor/Name 跨族共用留守，裁定见 §3.2）
 - **M5**（W4 末）写侧策略（D1）裁定 + 文档收口

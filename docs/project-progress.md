@@ -44,6 +44,17 @@ JSON/SVG/convert/PNG 四门全绿；OdWriteEx XRef.dwg（含 2 Ellipse）pre/pos
 真实 fixture 到位后应在 W4 切换前补跑。W2 契约偏差全表见 `docs/entity-refactor-plan.md` §3.2。
 下一步 W3：L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开）。
 
+W3 完成（2026-11-06，串行，commit 2f30942/4a3298b/9ea9a44/d52ccac）：**L1c**
+InsertGeometry/LeaderGeometry/ViewportGeometry 三族落位（累计 10 族模型实存储 + DwgEntity 转发）；
+`DwgEntity` 443→198 行——SVG 辅助方法整体迁 `Core/Render/EntitySvg.cs`、`TableEntity.Svg.cs` 迁出
+实体目录（M4 达成）；`Height/Rotation/WidthFactor/Name` 实测跨族共用，裁定留守 DwgEntity（入档
+§3.2）。**L6** `tools/gates/gates.ps1` 六门可执行（G1 `--no-incremental` 构建 / G2 JSON / G3 SVG /
+G4 convert / G5 ≤800 行 / G6 依赖方向；fixture 缺件报 BLOCKED 不报绿；红/绿/BLOCKED 三态自测通过；
+注意 PowerShell 5.1 需 UTF-8 BOM）。**G6 前置修复**：`PngDrawDevice` 对 `FrameRenderer` 的
+MakeTransform/ClampPx/ParseColor 反向引用下沉 Core（WorldTransform/PxMath，逐字搬运，产物字节全等）。
+六门当前 6/6 PASS。W4（最后一波）：删旧 painter 表 + RenderEntity 单路切换（切换前必须先补
+Table/MLeader 真实 fixture 门，见 W2 覆盖缺口）+ docs 收口。
+
 ## 2026-09-29 HATCH 渐变块跨版本处理修复
 
 ### 问题概述
