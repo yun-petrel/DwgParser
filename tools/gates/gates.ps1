@@ -1,4 +1,4 @@
-﻿# 实体重构验收门 G1-G6（docs/entity-refactor-plan.md §6）
+﻿# 实体重构验收门 G1-G7（docs/entity-refactor-plan.md §6 + G7 实体层不变量）
 # 用法:  pwsh ./tools/gates/gates.ps1 [-Gate all|G1|G2|G3|G4|G5|G6] [-Repo <repoRoot>]
 # 语义:  每门输出 PASS / FAIL(<原因>) / BLOCKED(<缺依赖>)；任一 FAIL/BLOCKED 则退出码非 0。
 #        无 fixture 时 G2/G3/G4 报 BLOCKED，不得报绿（§6 BLOCKED 语义）。
@@ -127,8 +127,18 @@ function Invoke-G6 {
     else { Add-Result "G6" "FAIL" ($bad -join "; ") }
 }
 
+function Invoke-G7 {
+    $out = dotnet run --project tests/DwgParser.Tests 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $detail = ($out | Select-String "\[FAIL\]" | Select-Object -First 3) -join "; "
+        Add-Result "G7" "FAIL" ("实体层不变量: " + $detail)
+    } else {
+        Add-Result "G7" "PASS" "实体层不变量 dotnet run tests/DwgParser.Tests"
+    }
+}
+
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
