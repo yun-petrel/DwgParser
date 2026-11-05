@@ -80,7 +80,7 @@ public static class DwgEditor
             DwgConverter.Save(file, tgt, tmpPath);
 
             var rw = DwgConverter.Load(tmpPath).GetObjects();
-            bool ok = rw.Errors == 0;
+            bool ok = rw.Errors <= walk.Errors;
             var unclaimed = new HashSet<ulong>(WriteSideEdits.UnappliedAttributeEdits);
 
             var verified = new List<OpOutcome>(outcomes.Count);

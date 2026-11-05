@@ -159,7 +159,10 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 - **G8 跨版本棘轮**（2026-11-06 增）：每 fixture × 6 目标版本 `--convert` 后**自读回**（`--json` rc=0）——
   守护"写侧产物可被自己的读侧消费"；组合失败挂 `manifest.g8KnownBad` 棘轮名单（已修组合不摘名单即
   RECOVERED 红），名单本身不入库随 manifest 走本地门禁状态。建门即抓真 bug：mgf2_1015→R2010+ 三组合
-  因 Header 短节在 `FillLinetypeScales` 越界崩溃（违反解析不抛不变量），异常过滤器补越界族后康复。
+  因 Header 短节在 `FillLinetypeScales` 越界崩溃（违反解析不抛不变量），异常过滤器补越界族后康复；
+  值级哨兵次日再抓 mgf2→AC1018 LTSCALE 1→0.3 退化（HeaderVarsCodec 遇 EndOfStream 优雅截断修复）。
+- **G9 编辑回路**（2026-11-06 增）：inspect→组 setText 单→--ops→回读验证新值 + 缺 --output 负例 rc=2；
+  建门修两处解析不抛违例（ops 单形状错误崩 CLI）与一处自证过严（rw.Errors==0 应为不引入新错误）。
 
 ## 7. 风险与回退
 

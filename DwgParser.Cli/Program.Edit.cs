@@ -126,13 +126,16 @@ public static partial class Program
         }
         using (doc)
         {
-            if (!doc.RootElement.TryGetProperty("ops", out var arr)
+            if (doc.RootElement.ValueKind != JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("ops", out var arr)
                 || arr.ValueKind != JsonValueKind.Array)
             {
-                err = "缺 ops 数组。";
+                err = "操作单根须为对象且含 ops 数组。";
                 return false;
             }
             int i = 0;
+            try
+            {
             foreach (var j in arr.EnumerateArray())
             {
                 string name = j.TryGetProperty("op", out var n) ? n.GetString() ?? "" : "";
@@ -176,6 +179,12 @@ public static partial class Program
                         return false;
                 }
                 i++;
+            }
+            }
+            catch (Exception ex)
+            {
+                err = "操作单元素解析失败: " + ex.Message;
+                return false;
             }
         }
         if (ops.Count == 0) { err = "ops 为空单。"; return false; }

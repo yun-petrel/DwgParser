@@ -7,7 +7,7 @@ param(
     [string]$Repo = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 if (-not $Repo) { $Repo = (Resolve-Path "$PSScriptRoot/../..").Path }
 Set-Location $Repo
 
@@ -136,7 +136,7 @@ function Invoke-G8 {
     $mf = Join-Path $Repo "out/base/manifest.json"
     try { $knownBad = (Get-Content $mf -Raw -Encoding UTF8 | ConvertFrom-Json).g8KnownBad } catch {}
     $versions = @("AC1015","AC1018","AC1021","AC1024","AC1027","AC1032")
-    $fails = @(); $knownCount = 0
+    $fails = @(); $knownCount = 0; $recovered = @()
     foreach ($f in $fixtures) {
         if (-not (Test-Path $f.source)) { continue }
         $srcJson = Join-Path $Repo $f.json
@@ -165,7 +165,12 @@ function Invoke-G8 {
                 if ($knownBad -contains $combo) { $knownCount++; $fails += "$combo($bad 已知坏)" }
                 else { $fails += "$combo($bad 新坏)" }
             }
+            elseif ($knownBad -contains $combo) { $recovered += $combo }
         }
+    }
+    if ($recovered.Count -gt 0) {
+        Add-Result "G8" "FAIL" ("组合已修复但仍在 manifest.g8KnownBad 名单上（请删除名单条目）: " + ($recovered -join "; "))
+        return
     }
     $hardFail = $fails | Where-Object { $_ -notmatch "已知坏" }
     if ($hardFail.Count -eq 0) {
@@ -173,6 +178,31 @@ function Invoke-G8 {
     } else {
         Add-Result "G8" "FAIL" ("新坏组合: " + ($hardFail -join "; "))
     }
+}
+
+function Invoke-G9 {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Add-Result "G9" "BLOCKED" "out/base/manifest.json 缺失"; return }
+    $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    if (-not (Test-Path $cli)) { Add-Result "G9" "BLOCKED" "CLI 未构建"; return }
+    $f = $fixtures | Where-Object { Test-Path $_.source } | Select-Object -First 1
+    & $cli $f.source --inspect "out/gate/g9inspect.json" --limit 20 *> $null
+    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "inspect rc=$LASTEXITCODE"; return }
+    $insp = Get-Content "out/gate/g9inspect.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+    $cand = $insp.candidates | Where-Object { $_.ops -contains "setText" } | Select-Object -First 1
+    if ($null -eq $cand) { Add-Result "G9" "FAIL" "无 setText 候选"; return }
+    $opsJson = '{"ops":[{"op":"setText","handle":"' + $cand.handle + '","value":"G9 编辑门测试文本"}]}'
+    [System.IO.File]::WriteAllText((Join-Path $Repo "out/gate/g9ops.json"), $opsJson, (New-Object System.Text.UTF8Encoding($false)))
+    & $cli $f.source --ops "out/gate/g9ops.json" --output "out/gate/g9out.dwg" --report "out/gate/g9report.json" *> $null
+    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "ops rc=$LASTEXITCODE"; return }
+    & $cli "out/gate/g9out.dwg" --json "out/gate/g9re.json" *> $null
+    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "回读 rc=$LASTEXITCODE"; return }
+    $re = Get-Content "out/gate/g9re.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+    $hit = $re.entities | Where-Object { $_.handle -eq $cand.handle } | Select-Object -First 1
+    if ($null -eq $hit -or $hit.text -ne "G9 编辑门测试文本") { Add-Result "G9" "FAIL" "回读未见到新值"; return }
+    & $cli $f.source --ops "out/gate/g9ops.json" --report "out/gate/g9r2.json" *> $null
+    if ($LASTEXITCODE -ne 2) { Add-Result "G9" "FAIL" "负例（缺 output）rc=$LASTEXITCODE 应为 2"; return }
+    Add-Result "G9" "PASS" "inspect→ops→回读编辑回路 + 用法负例 rc=2"
 }
 
 function Invoke-G7 {
@@ -186,7 +216,7 @@ function Invoke-G7 {
 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
