@@ -254,7 +254,19 @@ function Invoke-G9 {
     & $cli $f1.source --ops "out/gate/g9ops1.json" --report "out/gate/g9r2.json" *> $null
     if ($LASTEXITCODE -ne 2) { $fail += "负例（缺 output）rc=$LASTEXITCODE 应为 2" }
 
-    if ($fail.Count -eq 0) { Add-Result "G9" "PASS" "四算子双 fixture 编辑回路（setText/setAttrib/addMText/delete）+ 用法负例 rc=2" }
+    $ea = $insp.candidates | Where-Object { $_.ops -contains "setAttrib" } | Select-Object -First 1
+    if ($ea) {
+        & $cli $f1.source --edit-attr ($ea.handle + "=G9ATTR") --convert AC1015 --output "out/gate/g9ea.dwg" *> $null
+        if ($LASTEXITCODE -ne 0) { $fail += "edit-attr rc=$LASTEXITCODE" }
+        else {
+            & $cli "out/gate/g9ea.dwg" --json "out/gate/g9ea.json" *> $null
+            $reEa = Get-Content "out/gate/g9ea.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+            $hitEa = $reEa.entities | Where-Object { $_.handle -eq $ea.handle } | Select-Object -First 1
+            if ($null -eq $hitEa -or $hitEa.text -ne "G9ATTR") { $fail += "edit-attr 回读未见新值" }
+        }
+    }
+
+    if ($fail.Count -eq 0) { Add-Result "G9" "PASS" "五腿编辑回路（四算子 + --edit-attr 旧模式）+ 用法负例 rc=2" }
     else { Add-Result "G9" "FAIL" ($fail -join "; ") }
 }
 
@@ -271,6 +283,11 @@ function Invoke-G10 {
             if ($LASTEXITCODE -ne 0) { $fails += "$($f.stem)$m rc=$LASTEXITCODE" }
         }
     }
+    foreach ($f2x in $fixtures) {
+        if (-not (Test-Path $f2x.source)) { continue }
+        & $cli $f2x.source --fieldize *> $null
+        if ($LASTEXITCODE -ne 0) { $fails += "$($f2x.stem)--fieldize rc=$LASTEXITCODE" }
+    }
     $acisFixture = $fixtures | Where-Object { $_.sourceVersion -eq "AC1027" -and (Test-Path $_.source) } | Select-Object -First 1
     if ($acisFixture) {
         & $cli $acisFixture.source --acis "out/gate/g10.sab" *> $null
@@ -278,7 +295,7 @@ function Invoke-G10 {
         & $cli $acisFixture.source --preview "out/gate/g10.bmp" *> $null
         if ($LASTEXITCODE -ne 0) { $fails += "$($acisFixture.stem)--preview rc=$LASTEXITCODE" }
     }
-    if ($fails.Count -eq 0) { Add-Result "G10" "PASS" "只读诊断模式（strings/classes/eedaudit×7 + acis/preview）全 rc=0" }
+    if ($fails.Count -eq 0) { Add-Result "G10" "PASS" "只读诊断模式（strings/classes/eedaudit/fieldize×7 + acis/preview）全 rc=0" }
     else { Add-Result "G10" "FAIL" ($fails -join "; ") }
 }
 
