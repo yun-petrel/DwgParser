@@ -134,6 +134,8 @@ W4 完成（2026-11-06）：**单路切换**——painter 字典/`RasterReady` �
 `EntityRenderRegistry.For`（M3 达成）；MLine/Tolerance/Region/Solid3d/Body 从静默不画变为绘出
 （与 SVG 对齐，mgf2_1015 的 1 个 Tolerance 为唯一像素差异，基线同会话重生成）；SoftwareRasterizer
 作为公共 API 面保留。**M5 裁定**：写侧长期维持 record 驱动，`IEntityWriter` 空壳不落（见 plan §8）。
-六门 6/6 PASS。**BLOCKED（1 项）**：Table/MLeader 真实 fixture 缺失，像素等价由合成台架背书
-（plan §3.3）。**实体类重构 W0-W4 至此全部完成**：DwgEntity 443→198 行、10 族模型、读侧 33 codec
+六门 6/6 PASS。**BLOCKED 收尾（2026-11-06）**：盘面图框模板库发现大量 ACAD_TABLE，入基线
+`新模板.dwg`(AC1027)+`晶体毛胚半成品.dwg`(AC1015) 两真实 fixture（convert 字节等价、PNG 目检
+表格渲染完整），**Table 覆盖缺口关闭**、基线扩至 5 fixture 门 6/6 PASS；仅 MLeader 仍 BLOCKED
+（全盘无含 MLEADER 的 DWG）。**实体类重构 W0-W4 至此全部完成**：DwgEntity 443→198 行、10 族模型、读侧 33 codec
 注册表、渲染单一决议源（For/ForSvg）、六门可执行。后续工作转入常规维护与写侧 HATCH 车道合并。

@@ -119,7 +119,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 - `For(PointSequence)` 补 `PointSequenceRenderer`（painter 时代该键活跃，单路后不可缺）。
 - **SoftwareRasterizer 保留**：公共 API 面（RenderExtensions.* 包装），其 painter dict 非 FrameRenderer 死路径，`RasterKindOf`/`ClampPx` 委托随之保留。
 - 像素等价实证：3 fixture 中 2 个 PNG/PNG-L 逐字节不变（Solid x16~20、PointSequence 真实文件切换等价）；mgf2_1015 唯一差异带 y[518,542) +320 非白像素 = 1 个 Tolerance 从静默不画变绘出（本波目的）；目检图面完整。
-- **BLOCKED 清单（1 项）**：Table/MLeader 无真实 DWG fixture——其像素等价证据 = 合成实体台架 8/8（E:/tmp/dwgp-ab，painter 已删故该台架自此封存）；真实 fixture 到位后应跑一次 `--png` 与历史基线比对。
+- **BLOCKED 清单（2026-11-06 更新，余 1 项）**：~~Table~~ **已关闭**——盘面图框模板库（E:/工程/DrawCAD/App_Data/Template/）发现大量 ACAD_TABLE，入基线 2 fixture：`新模板.dwg`(AC1027, TableAcR2010Plus 路径) + `晶体毛胚半成品.dwg`(AC1015, TableAcPreR2010 路径)，基线生成时 convert 逐字节等价、门 6/6 PASS、PNG 目检表格网格/背景/文字/合并渲染完整。**MLeader 仍 BLOCKED**——全盘未见含 MLEADER 的 DWG（各文件 0x216 均为 RAPIDRTRENDERSETTINGS），像素等价仍由合成台架 8/8 背书（E:/tmp/dwgp-ab 已封存）；fixture 到位后跑一次 `--png` 即可关闭。基线清单 `out/base/manifest.json` 现含 5 fixture（不入库，二进制基线属本地门禁状态）。
 
 ## 4. 车道划分（文件占用即所有权）
 
