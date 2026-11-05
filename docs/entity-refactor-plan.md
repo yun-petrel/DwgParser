@@ -156,6 +156,10 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 - **G5 行数**：全仓 `*.cs` ≤ 800 行（`SourceFileSizeTests` 不存在，先用脚本门）。
 - **G6 依赖方向**：`Core` 内 `grep -r "using DwgParser.Rendering"` = 0；`Rendering` 内不得出现 `FrameRenderer` 反向被设备层引用。
 - **BLOCKED 语义**：无 fixture 时 G2/G3/G4 报 `BLOCKED`，**不得**报绿。
+- **G8 跨版本棘轮**（2026-11-06 增）：每 fixture × 6 目标版本 `--convert` 后**自读回**（`--json` rc=0）——
+  守护"写侧产物可被自己的读侧消费"；组合失败挂 `manifest.g8KnownBad` 棘轮名单（已修组合不摘名单即
+  RECOVERED 红），名单本身不入库随 manifest 走本地门禁状态。建门即抓真 bug：mgf2_1015→R2010+ 三组合
+  因 Header 短节在 `FillLinetypeScales` 越界崩溃（违反解析不抛不变量），异常过滤器补越界族后康复。
 
 ## 7. 风险与回退
 
