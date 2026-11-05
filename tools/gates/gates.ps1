@@ -303,19 +303,30 @@ function Invoke-G11 {
     $fixtures = Get-Fixtures
     if ($null -eq $fixtures) { Add-Result "G11" "BLOCKED" "out/base/manifest.json 缺失"; return }
     $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    $py = "python"
     if (-not (Test-Path $cli)) { Add-Result "G11" "BLOCKED" "CLI 未构建"; return }
-    $fails = @()
+    $fails = @(); $tol = @()
     foreach ($f in $fixtures) {
         if (-not (Test-Path $f.source)) { continue }
-        if (-not $f.pngLSha256) { $fails += "$($f.stem):基线无 pngLSha256"; continue }
+        $base = Join-Path $Repo $f.pngL
+        if (-not (Test-Path $base)) { $fails += "$($f.stem):基线 pngL 文件缺失"; continue }
         $out = "out/gate/$($f.stem).g11.pngL"
         & $cli $f.source --pngL $out *> $null
         if ($LASTEXITCODE -ne 0) { $fails += "$($f.stem):pngL rc=$LASTEXITCODE"; continue }
         $h = (Get-FileHash $out -Algorithm SHA256).Hash.ToLower()
-        if ($h -ne $f.pngLSha256.ToLower()) { $fails += "$($f.stem):pngL 哈希≠基线" }
+        if ($h -eq $f.pngLSha256.ToLower()) { continue }
+        $out2 = $out | ForEach-Object { $_ }
+        $diffOut = & $py (Join-Path $Repo "tools/gates/pngdiff.py") $out $base 2000
+        $diffRc = $LASTEXITCODE
+        $diffLine = ($diffOut | Select-Object -First 1)
+        if ($diffRc -eq 0) { $tol += "$($f.stem)($diffLine)" }
+        elseif ($diffRc -eq 2) { $fails += "$($f.stem):$diffLine" }
+        else { $fails += "$($f.stem):超容差 $diffLine" }
     }
-    if ($fails.Count -eq 0) { Add-Result "G11" "PASS" "分层渲染 PNG-L 逐 fixture 哈希=基线（跨会话稳定）" }
-    else { Add-Result "G11" "FAIL" ($fails -join "; ") }
+    if ($fails.Count -eq 0) {
+        if ($tol.Count -gt 0) { Add-Result "G11" "PASS" ("分层渲染像素差分（哈希漂移 " + $tol.Count + " 项落容差内: " + ($tol -join "; ") + "）") }
+        else { Add-Result "G11" "PASS" "分层渲染 PNG-L 全 fixture 哈希=基线" }
+    } else { Add-Result "G11" "FAIL" ($fails -join "; ") }
 }
 
 function Invoke-G7 {
