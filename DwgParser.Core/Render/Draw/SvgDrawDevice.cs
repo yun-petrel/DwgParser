@@ -107,6 +107,14 @@ public sealed class SvgDrawDevice : IDrawDevice
             + $"r=\"{F(radius)}\" fill=\"{Hex(fill.Rgba)}\"/>\n");
     }
 
+    public void DrawDot(Vec2 center, int radiusPx, FillStyle fill)
+    {
+        if (!fill.IsFill) return;
+        Expand(center.X, center.Y);
+        _sb.Append($"{Indent}<circle cx=\"{F(center.X)}\" cy=\"{F(center.Y)}\" "
+            + $"r=\"{F(radiusPx)}\" fill=\"{Hex(fill.Rgba)}\"/>\n");
+    }
+
     public void DrawPolyline(ReadOnlyMemory<Vec2> pts, bool closed, StrokeStyle stroke, FillStyle fill)
     {
         var p = pts.Span;

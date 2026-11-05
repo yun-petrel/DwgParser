@@ -54,7 +54,7 @@ public sealed record RasterTextSpec(
     double LineGap, bool IsMText,
     DwgParser.Core.Objects.DwgObjectReader.TextStyleInfo? Style,
     double EmFactor = ShxTextShapes.EmFactor, int MinFontPx = TextRasterLimits.MinFontPx, bool StyleWidthFactor = true,
-    bool FamilyFromStyle = true, double BaselineNudge = 0);
+    bool FamilyFromStyle = true, double BaselineNudge = 0, bool SkipVerticalShx = false);
 
 public readonly record struct DrawViewport(double MinX, double MinY, double MaxX, double MaxY,
                                            int WidthPx, int HeightPx, double MarginPx, bool FlipY);

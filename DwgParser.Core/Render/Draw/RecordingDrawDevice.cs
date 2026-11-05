@@ -34,6 +34,8 @@ internal sealed class RecordingDrawDevice : IDrawDevice
         => Log.Add($"DrawArc {P(c)} r{F(r)} {F(a0)}..{F(a1)} {Sk(stroke)}");
     public void DrawCircle(Vec2 c, double r, StrokeStyle stroke, FillStyle fill)
         => Log.Add($"DrawCircle {P(c)} r{F(r)} {Sk(stroke)}{Fk(fill)}");
+    public void DrawDot(Vec2 c, int radiusPx, FillStyle fill)
+        => Log.Add($"DrawDot {P(c)} rpx={radiusPx}{Fk(fill)}");
     public void DrawText(TextRequest t)
     {
         Texts.Add(t);

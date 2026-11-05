@@ -16,6 +16,8 @@ public interface IDrawDevice
 
     void DrawCircle(Vec2 center, double radius, StrokeStyle stroke, FillStyle fill);
 
+    void DrawDot(Vec2 center, int radiusPx, FillStyle fill);
+
     void DrawPolyline(ReadOnlyMemory<Vec2> pts, bool closed, StrokeStyle stroke, FillStyle fill);
 
     void FillPolygon(ReadOnlyMemory<Vec2> ring, FillStyle fill);

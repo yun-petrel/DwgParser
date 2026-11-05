@@ -114,6 +114,12 @@ public sealed class PngDrawDevice : IDrawDevice
         else _buf.FillCircle(cx, cy, r, fill.R, fill.G, fill.B);
     }
 
+    public void DrawDot(Vec2 center, int radiusPx, FillStyle fill)
+    {
+        if (!fill.IsFill) return;
+        _buf.FillCircle(Px(center.X), Py(center.Y), radiusPx, fill.R, fill.G, fill.B);
+    }
+
     public void DrawPolyline(ReadOnlyMemory<Vec2> pts, bool closed, StrokeStyle stroke, FillStyle fill)
     {
         var p = pts.Span;
@@ -242,7 +248,7 @@ public sealed class PngDrawDevice : IDrawDevice
         }
 
         double shxHeightPx = t.Style.Height * _scale;
-        if (style?.IsVertical == true)
+        if (style?.IsVertical == true && !sp.SkipVerticalShx)
         {
             var (vm, vb) = ResolveShxFonts(style, text);
             if (vm is not null || vb is not null)
