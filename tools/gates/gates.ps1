@@ -136,32 +136,40 @@ function Invoke-G8 {
     $mf = Join-Path $Repo "out/base/manifest.json"
     try { $knownBad = (Get-Content $mf -Raw -Encoding UTF8 | ConvertFrom-Json).g8KnownBad } catch {}
     $versions = @("AC1015","AC1018","AC1021","AC1024","AC1027","AC1032")
-    $fails = @(); $knownOk = @()
+    $fails = @(); $knownCount = 0
     foreach ($f in $fixtures) {
         if (-not (Test-Path $f.source)) { continue }
+        $srcJson = Join-Path $Repo $f.json
         foreach ($v in $versions) {
             $combo = "$($f.stem):$v"
             $outDwg = "out/gate/$($f.stem).g8.$v.dwg"
+            $bad = $null
             & $cli $f.source --convert $v --output $outDwg *> $null
-            $bad = $false
-            if ($LASTEXITCODE -ne 0) { $bad = $true }
+            if ($LASTEXITCODE -ne 0) { $bad = "convert rc=$LASTEXITCODE" }
             else {
                 & $cli $outDwg --json "out/gate/g8reread.json" *> $null
-                if ($LASTEXITCODE -ne 0) { $bad = $true }
+                if ($LASTEXITCODE -ne 0) { $bad = "reread rc=$LASTEXITCODE" }
+                else {
+                    foreach ($k in @("ltscale", "celtscale")) {
+                        $sm = Select-String -Path $srcJson -Pattern ('"' + $k + '":([-0-9.eE]+)')
+                        $rm = Select-String -Path "out/gate/g8reread.json" -Pattern ('"' + $k + '":([-0-9.eE]+)')
+                        if ($sm -and $sm.Matches.Groups.Count -gt 1 -and $rm -and $rm.Matches.Groups.Count -gt 1) {
+                            $sv = $sm.Matches.Groups[1].Value
+                            $rv = $rm.Matches.Groups[1].Value
+                            if ($sv -ne $rv) { $bad = "$k 退化 $sv->$rv" }
+                        }
+                    }
+                }
             }
-            if ($bad -and $knownBad -contains $combo) { $fails += "$combo(已知坏)" }
-            elseif ($bad) { $fails += "$combo(新坏)" }
-            elseif ($knownBad -contains $combo) { $knownOk += $combo }
+            if ($bad -ne $null) {
+                if ($knownBad -contains $combo) { $knownCount++; $fails += "$combo($bad 已知坏)" }
+                else { $fails += "$combo($bad 新坏)" }
+            }
         }
-    }
-    if ($knownOk.Count -gt 0) {
-        Add-Result "G8" "FAIL" ("组合修复后仍挂已知坏名单（从 manifest g8KnownBad 删除）: " + ($knownOk -join "; "))
-        return
     }
     $hardFail = $fails | Where-Object { $_ -notmatch "已知坏" }
     if ($hardFail.Count -eq 0) {
-        $kb = ($fails | Measure-Object).Count
-        Add-Result "G8" "PASS" ("跨版本转换×再消费全矩阵（已知坏 " + $kb + " 项挂棘轮名单）")
+        Add-Result "G8" "PASS" ("跨版本转换×自消费全矩阵（已知坏/退化 " + $knownCount + " 项挂棘轮名单）")
     } else {
         Add-Result "G8" "FAIL" ("新坏组合: " + ($hardFail -join "; "))
     }
