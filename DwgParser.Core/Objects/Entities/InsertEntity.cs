@@ -6,7 +6,7 @@ namespace DwgParser.Core.Objects;
 public abstract class InsertEntity : DwgEntity, IInsert
 {
     protected override string WriteSvg(RenderContext ctx, Matrix m)
-        => RenderInsert(ctx, m, 0);
+        => EntitySvg.RenderInsert(this, ctx, m, 0);
 
     protected abstract void ReadScale(BitReader br);
 

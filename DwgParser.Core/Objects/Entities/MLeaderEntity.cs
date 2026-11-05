@@ -242,7 +242,7 @@ public abstract class MLeaderEntity : DwgEntity, IMLeader
             double wx = ContentLocation.X, wy = ContentLocation.Y;
             if (!Finite(wx) || !Finite(wy) || (wx == 0 && wy == 0)) { wx = Base.X; wy = Base.Y; }
             if (!Finite(wx) || !Finite(wy)) return sb.ToString();
-            sb.Append(RenderTextAt(ctx, m, wx, wy, ContentRotation, MTextHeight, TextValue, stroke));
+            sb.Append(EntitySvg.RenderTextAt(ctx, m, wx, wy, ContentRotation, MTextHeight, TextValue, stroke));
         }
         return sb.ToString();
     }

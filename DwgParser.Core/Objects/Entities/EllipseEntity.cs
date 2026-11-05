@@ -6,7 +6,7 @@ namespace DwgParser.Core.Objects;
 public sealed class EllipseEntity : DwgEntity, IEllipse
 {
     protected override string WriteSvg(RenderContext ctx, Matrix m)
-        => RenderEllipse(ctx, m, ctx.EntityColor(this));
+        => EntitySvg.RenderEllipse(this, ctx, m, ctx.EntityColor(this));
 
     public void ReadGeometry(BitReader br)
     {

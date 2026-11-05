@@ -9,7 +9,7 @@ public sealed class HatchEntity : DwgEntity, IHatch
     {
         string c = ctx.EntityColor(this);
         var rings = HatchGeometry.BoundaryRings(this);
-        if (rings.Count == 0) return RenderHatch(ctx, m, c, c);
+        if (rings.Count == 0) return EntitySvg.RenderHatch(this, ctx, m, c, c);
 
         var sb = new System.Text.StringBuilder();
         foreach (var ring in rings)
