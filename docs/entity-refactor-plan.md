@@ -170,7 +170,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 ## 8. 里程碑
 
 - **M0**（W0 末）契约冻结、基线存档 ✅ 2026-11-04（三契约编译通过、G1 绿、基线 3 fixture 逐字节可比）
-- **M1**（W1 末）`EntityCollection` 上线，块/空间/图层视图全走它 ✅ 2026-11-05（块/空间走它；图层表元素类型 ILayer≠IEntity 未接入，遗留 W2）
+- **M1**（W1 末）`EntityCollection` 上线，块/空间/图层视图全走它 ✅ 2026-11-05（块/空间走它）；图层表接入裁定 **won't-fix（2026-11-06）**：`ILayer≠IEntity` 是真实领域差异（图层非实体、解码后只读、无 owner 分组语义），LayerTable 60 行索引视图与 EntityCollection 的可变实体集各司其职，强行泛化 ~10 行字典管线属零收益扰动
 - **M2**（W2 末）读侧注册表替换完成，新增实体类型只碰一处 ✅ 2026-11-06（0416a47）
 - **M3**（W2 末）渲染单路 + 全 kind 表态 ✅ 2026-11-06（W2 表态达成 55f2ce9；W4 单路切换：painter 字典/`RasterReady` 删除，`RenderEntity` 直调 `EntityRenderRegistry.For`，`For` 无 renderer 的结构类不绘；MLine/Tolerance/Region/Solid3d/Body 从静默不画变为经 Core renderer 绘出，与 SVG 通道对齐——mgf2_1015 的 Tolerance 即此差异，PNG 基线已同会话重生成）
 - **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立 ✅ 2026-11-06（4a3298b：443→198 行；10 个族模型实存储 + 转发保 API；Height/Rotation/WidthFactor/Name 跨族共用留守，裁定见 §3.2）
