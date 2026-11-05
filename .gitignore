@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 # 重构基线与产物（docs/entity-refactor-plan.md W0）
 out/
+.workbuddy/

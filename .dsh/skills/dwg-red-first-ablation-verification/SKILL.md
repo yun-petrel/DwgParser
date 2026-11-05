@@ -253,7 +253,7 @@ python tools/winbuild.py dotnet test DwgParser.sln --no-build --list-tests 2>&1 
 
 - [ ] 撤刀态 = 恰 N 红 / M 绿；还原并重建后 = 同档全绿；`git diff --numstat -- <刀件>` 为空
 - [ ] 动过**共享件**的字节形 ⇒ 已跑全量套件 + `firstdiff` 位移枚数（只跑门不算验过）；拿「≡ 真本」当尺 ⇒ 已把≥两本真本同枚互校。
-- [ ] 改过的 `src/` 件行数已 `wc -l` 核过（≤800），越线是先拆 partial sibling + 复验产物 sha 不变，不是压注释。。
+- [ ] 改过的 `src/` 件行数已 `wc -l` 核过（≤800），越线是先拆 partial sibling + 复验产物 sha 不变，不是压注释。
 - [ ] 消融生效已自证（OFF/ON 产物 sha 或刀痕行数不同），不是同哈希的重复测量。
 - [ ] 恒等面 diff rows 数已记；若有位移行，已跑该图两态 ODA 对照定因。
 - [ ] 两片计数与 `--list-tests` 差值已解释；红/绿读数带**档名 + 格数 + 提交号 + 是否干净树**。

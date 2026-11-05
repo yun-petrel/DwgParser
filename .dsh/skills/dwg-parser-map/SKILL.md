@@ -366,5 +366,3 @@ dwginfo <文件.dwg> --convert AC1015 --output old.dwg    # 跨版本转换（�
   `description_en` + `description_zh` + `argument-hint` + `argument-hint_en/zh` + `user-invocable`。
 - **同类技法只有一个落点**（见上表「唯一落点」列）；别处只留指针，勿平行维护。
 - 技能**不写会腐化的读数**（测试计数 / 文件行数 / 进度）：写进技能即逼每手改它。要数字写**指针 + 现场复核法**。
-
-
