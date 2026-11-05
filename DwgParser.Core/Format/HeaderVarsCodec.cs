@@ -152,6 +152,10 @@ public static class HeaderVarsCodec
                     _ => throw new NotSupportedException($"未知头部变量类型 {f.Type}")
                 };
             }
+            catch (EndOfStreamException)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 throw new InvalidDataException(

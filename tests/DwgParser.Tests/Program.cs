@@ -5,6 +5,25 @@ using DwgParser.Core.Format;
 using DwgParser.Rendering;
 using DwgParser.Core.Render;
 
+if (args.Length >= 2 && args[0] == "hv")
+{
+    var doc = DwgParser.Core.Format.DwgDocument.Load(args[1]);
+    var sec = doc.Sections.FirstOrDefault(s2 => (s2.Name == "Header" || s2.Name == "AcDb:Header") && s2.Data is { Length: > 32 });
+    if (sec is null) { Console.WriteLine("无 Header 节"); return 1; }
+    try
+    {
+        var v = DwgParser.Core.Format.HeaderVarsCodec.Decode(sec.Data!, doc.Version);
+        foreach (var k in new[] { "LTSCALE", "CELTSCALE", "PSLTSCALE", "TEXTSIZE", "TRACEWID" })
+            Console.WriteLine($"{k} = {v.GetValueOrDefault(k)}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("解码失败: " + ex.Message);
+        return 1;
+    }
+    return 0;
+}
+
 int _fail = 0, _total = 0;
 
 void Ok(bool cond, string name)

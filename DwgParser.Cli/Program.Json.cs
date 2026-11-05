@@ -34,6 +34,8 @@ public static partial class Program
         w.WriteNumber("objectsDecoded", objs.ObjectsDecoded);
         w.WriteNumber("walkErrors", objs.Errors);
         w.WriteString("modelSpaceHandle", ProgramRuntime.Hex(objs.ModelSpaceHandle));
+        w.WriteNumber("ltscale", objs.Ltscale);
+        w.WriteNumber("celtscale", objs.Celtscale);
         w.WriteString("paperSpaceHandle", ProgramRuntime.Hex(objs.PaperSpaceHandle));
 
         WriteEntities(w, objs);
