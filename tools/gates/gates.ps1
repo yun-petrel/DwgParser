@@ -4,7 +4,9 @@
 #        无 fixture 时 G2/G3/G4 报 BLOCKED，不得报绿（§6 BLOCKED 语义）。
 param(
     [string]$Gate = "all",
-    [string]$Repo = ""
+    [string]$Repo = "",
+    [switch]$Rebaseline,
+    [string]$Stem = "all"
 )
 
 $ErrorActionPreference = "Continue"
@@ -338,6 +340,53 @@ function Invoke-G7 {
         Add-Result "G7" "PASS" "实体层不变量 dotnet run tests/DwgParser.Tests"
     }
 }
+
+function Invoke-Rebaseline([string]$stemFilter) {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Write-Host "BLOCKED: out/base/manifest.json 缺失（无 fixture 清单可重生成）"; exit 2 }
+    $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    if (-not (Test-Path $cli)) { Write-Host "BLOCKED: CLI 未构建"; exit 2 }
+    $today = (Get-Date).ToString("yyyy-MM-dd")
+    foreach ($f in $fixtures) {
+        if ($stemFilter -ne "all" -and $f.stem -ne $stemFilter) { continue }
+        if (-not (Test-Path $f.source)) { Write-Host "SKIP $($f.stem): 源文件缺失"; continue }
+        $ver = $f.sourceVersion
+        & $cli $f.source --json $f.json *> $null
+        & $cli $f.source --svg $f.svg *> $null
+        & $cli $f.source --convert $ver --output $f.convertSameVersion *> $null
+        & $cli $f.source --png $f.png *> $null
+        & $cli $f.source --pngL $f.pngL *> $null
+        if ($LASTEXITCODE -ne 0) { Write-Host "FAIL $($f.stem): 生成 rc=$LASTEXITCODE"; exit 1 }
+        function Set-Mem([object]$o, [string]$n, [object]$v) {
+            $o | Add-Member -Force -NotePropertyName $n -NotePropertyValue $v
+        }
+        Set-Mem $f jsonSha ((Get-FileHash $f.json -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f svgSha256 ((Get-FileHash $f.svg -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f convertSha256 ((Get-FileHash $f.convertSameVersion -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f pngSha256 ((Get-FileHash $f.png -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f pngLSha256 ((Get-FileHash $f.pngL -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f sha256 ((Get-FileHash $f.source -Algorithm SHA256).Hash.ToLower())
+        Set-Mem $f byteIdentical ($f.convertSha256 -eq $f.sha256)
+        Set-Mem $f pngSession $today
+        Write-Host ("REBASED {0} ({1}) byteIdentical={2}" -f $f.stem, $ver, $f.byteIdentical)
+    }
+    $mf = Join-Path $Repo "out/base/manifest.json"
+    $m = Get-Content $mf -Raw -Encoding UTF8 | ConvertFrom-Json
+    $m.updated = $today
+    foreach ($f in $fixtures) {
+        $t = $m.fixtures | Where-Object { $_.stem -eq $f.stem }
+        if ($t) {
+            Set-Mem $t jsonSha $f.jsonSha; Set-Mem $t svgSha256 $f.svgSha256
+            Set-Mem $t convertSha256 $f.convertSha256; Set-Mem $t sha256 $f.sha256
+            Set-Mem $t pngSha256 $f.pngSha256; Set-Mem $t pngLSha256 $f.pngLSha256
+            Set-Mem $t byteIdentical $f.byteIdentical; Set-Mem $t pngSession $f.pngSession
+        }
+    }
+    [System.IO.File]::WriteAllText($mf, ($m | ConvertTo-Json -Depth 6), (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "manifest 已更新（g8KnownBad 棘轮名单未触碰——它是人工裁定，不随重生成变化）"
+}
+
+if ($Rebaseline) { Invoke-Rebaseline $Stem; exit 0 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
 $gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10","G11") } else { @($Gate) }
