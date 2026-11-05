@@ -29,17 +29,17 @@ public sealed class PngDrawDevice : IDrawDevice
 
     public void BeginPass(DrawViewport view)
     {
-        var (tx, ty, scale) = FrameRenderer.MakeTransform(view.MinX, view.MinY, view.MaxX, view.MaxY,
+        var (tx, ty, scale) = WorldTransform.Make(view.MinX, view.MinY, view.MaxX, view.MaxY,
                                                           view.WidthPx, view.HeightPx, (int)view.MarginPx);
         _tx = tx; _ty = ty; _scale = scale;
     }
 
     public void EndPass() { }
 
-    internal int Px(double x) => FrameRenderer.ClampPx(_tx(x));
-    internal int Py(double y) => FrameRenderer.ClampPx(_ty(y));
+    internal int Px(double x) => PxMath.ClampPx(_tx(x));
+    internal int Py(double y) => PxMath.ClampPx(_ty(y));
     internal double ScalePx => _scale;
-    private int RadiusPx(double r) => Math.Max(1, FrameRenderer.ClampPx(r * _scale));
+    private int RadiusPx(double r) => Math.Max(1, PxMath.ClampPx(r * _scale));
 
     public void DrawLine(Vec2 a, Vec2 b, StrokeStyle stroke)
     {
@@ -382,7 +382,7 @@ public sealed class PngDrawDevice : IDrawDevice
 
     internal static (byte, byte, byte) RunInk(int aci)
     {
-        var (rr, gg, bb) = FrameRenderer.ParseColor(RenderContext.AciColor(aci));
+        var (rr, gg, bb) = PxMath.ParseColor(RenderContext.AciColor(aci));
         return RenderInk.Map(rr, gg, bb);
     }
 
