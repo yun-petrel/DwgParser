@@ -139,3 +139,8 @@ W4 完成（2026-11-06）：**单路切换**——painter 字典/`RasterReady` �
 表格渲染完整），**Table 覆盖缺口关闭**、基线扩至 5 fixture 门 6/6 PASS；仅 MLeader 仍 BLOCKED
 （全盘无含 MLEADER 的 DWG）。**实体类重构 W0-W4 至此全部完成**：DwgEntity 443→198 行、10 族模型、读侧 33 codec
 注册表、渲染单一决议源（For/ForSvg）、六门可执行。后续工作转入常规维护与写侧 HATCH 车道合并。
+
+集合层收尾（2026-11-06，3f504a1）：`EntityCollection` 增活视图模式（Attach 源 List 零拷贝、计数脏检
+懒重建、附着模式变异显式炸），`WalkResult.EntitySet` 由拷贝快照改附着——消除快照后源列表变异致
+`Find` 陈旧的结构性缺陷，编解码 3 个变异点零改动。BLOCKED 复核：AutoCAD 目录仅剩 acad.exe.BAK、
+ODA 转换器不在盘上，MLeader fixture 无自产途径，维持外部依赖记录。
