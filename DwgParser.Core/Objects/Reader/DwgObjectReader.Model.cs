@@ -20,7 +20,7 @@ public static partial class DwgObjectReader
     {
         public List<DwgEntity> Entities { get; } = new();
 
-        public EntityCollection EntitySet => _entitySet ??= new EntityCollection(Entities);
+        public EntityCollection EntitySet => _entitySet ??= EntityCollection.Attach(Entities);
 
         private EntityCollection? _entitySet;
 
