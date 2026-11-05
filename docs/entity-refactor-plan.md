@@ -87,7 +87,30 @@
 | G1 既有门修复 | `sln -warnaserror` 在 W0 前即红：Rendering/CLI TFM `net8.0`→`net8.0-windows`（CA1416）；`ModuleInitializer`→静态构造（CA2255，字体安装语义不变）；`FrameRenderer.Painters` 补 discard 炸臂（CS8524）。均零行为变化 |
 | 基线 fixture | `E:\tmp\mgf2_1015.dwg`(AC1015)、`E:\工程\测试.dwg`(AC1027)、`C:\Users\zou_c\Downloads\kindee测试260508.dwg`(AC1024)；`--json`/`--svg`/同版本 `--convert` 全 rc=0，转换产物与源**逐字节相同**（G4 基线成立）；清单 `out/base/manifest.json`（含 SHA256），`out/` 已入 .gitignore |
 
+### 3.2 W2 冻结偏差与语义裁定（2026-11-05，随实现一并落位）
+
+| 项 | 裁定 |
+|---|---|
+| 注册表键 | `CanDecode(DwgEntityType, DwgVersion)` → **short typeCode**：3dFace 与 Solid 实体 `Kind` 同为 `DwgEntityType.Solid`（FaceAcR2000Plus 自设），DIMENSION 7 个子类型码共用一个 Kind——DwgEntityType 键无法分辨，short 码才是 DWG 原生身份 |
+| `Create` 签名 | `Create(ulong)` → `Create(ulong handle, short typeCode, DwgVersion version)`：版本旗标（Attribute 4 bool / Viewport 3 bool / Hatch 2 bool 等）与 DIMENSION 子类选择、Solid/3dFace 分型都需要 |
+| `Decode` 返回值 | `void` → `bool`：Insert 的 hasAttribs 返回值（record.HasAttribs 写侧依赖），其余恒 true |
+| `Decode` record 参数 | `DwgObjectRecord` → `DwgObjectRecord?`：dispatch 侧 record 本就可空 |
+| `EntityWindow` | 增补 `DwgVersion Version, ulong Handle`：Table/Dimension/MLine/Tolerance/Block 的 ReadBody 需要 version；MLine/Tolerance/Block 需要**原始** handle 参数（非 OwnHandle 覆写后的）；BodyStart=objStart、BodyEnd=objEnd、Bitsize=ced 调整后 |
+| Resolve null 语义 | 显式 `NotSupportedException`：Dispatch 外层 switch 已枚举同一实体码集才进 DecodeEntity，三元链 default 臂（裸 DwgEntity）为死路径，无现实行为变化 |
+| `IDrawDevice` | 新增基元 `DrawDot(Vec2, int radiusPx, FillStyle)`：Point 标记是**固定 3 像素**半径（无世界半径表达），PNG→FillCircle、SVG→`<circle>`、Recording→log；三实现显式落，无默认体 |
+| `RasterTextSpec` | 增补 `SkipVerticalShx = false`：painter 的 Table/MLeader 文字路径无竖排 SHX 分支，W4 切换时保真（Text 既有路径不受影响，默认 false） |
+| 渲染注册表拆分 | `For()` 拆 `ForSvg()`（冻结现 22 类 device-SVG 集）+ `For()`（= ForSvg ∪ 5 新 renderer）：SVG 通道 Point/Ellipse/Hatch/Table/MLeader 继续**实体自绘 WriteSvg**（G3 字节不变，实体自绘即显式表态）；光栅通道经 RasterReady（+5 类）进 Core renderer |
+| Insert 表态 | 归入结构性 null 组（块内容由走查渲染、自身无位图绘制，光栅管线从未到达 Insert）——注册表内不再有「未表态」null |
+| 工厂 | 33 个 `Decode` 重载删除；`Create*` 保留（codec 调用 + FrameRenderer.CreateTable / Geometry.CreateEntityHandleStream 外部在用） |
+| L1b 共用字段 | `Rotation`/`Height`/`WidthFactor` 被椭圆/插入/标注兜底多族共用，**不**入单族模型，留 W3 裁定归属 |
+
+**W2 验证记录**：3 fixture JSON/SVG/convert/PNG 四门与基线全等；`OdWriteEx XRef.dwg`（2 Ellipse）
+pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E:\tmp\dwgp-ab`（程序集名
+`DwgParser.Tests` 吃两边 InternalsVisibleTo，反射调私有 painter）8/8 合成实体像素等价。
+**缺口**：Table/MLeader 无真实 fixture，等价性仅由合成实体证明——真实 fixture 到位后、W4 切换前补跑。
+
 ## 4. 车道划分（文件占用即所有权）
+
 
 | 车道 | 独占路径 | 交付物 | 依赖 | 验收 |
 |---|---|---|---|---|
@@ -108,7 +131,7 @@
 |---|---|---|---|
 | W0 | 1 手（串行） | L0 契约冻结 + 基线快照（`--json`/`--svg`/`--convert` 存 `out/base/`） | 3 接口编译通过，基线可比 |
 | W1 | 3 手 | L1a（曲线/几何族）+ L4 + L5a（三路合一，只做分派不改绘制） | 集合层可用、单一分派 ✅ 2026-11-05（串行执行：ae77205/6532157/bf853b1） |
-| W2 | 3 手 | L1b（文字/表格/标注族）+ L2（注册表）+ L5b（补 6 类 renderer） | 三元链消失、覆盖 100% |
+| W2 | 3 手 | L1b（文字/表格/标注族）+ L2（注册表）+ L5b（补 6 类 renderer） | 三元链消失、覆盖 100% ✅ 2026-11-06（0416a47/55f2ce9/9c46f2f） |
 | W3 | 2 手 | L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开） | `DwgEntity` 只剩公共属性 |
 | W4 | 1 手 | 死路径删除（旧 painter 表、`SoftwareRasterizer` switch）、`docs/project-progress.md` 收口 | 门全绿 / 或明确 BLOCKED 清单 |
 
@@ -136,7 +159,7 @@
 
 - **M0**（W0 末）契约冻结、基线存档 ✅ 2026-11-04（三契约编译通过、G1 绿、基线 3 fixture 逐字节可比）
 - **M1**（W1 末）`EntityCollection` 上线，块/空间/图层视图全走它 ✅ 2026-11-05（块/空间走它；图层表元素类型 ILayer≠IEntity 未接入，遗留 W2）
-- **M2**（W2 末）读侧注册表替换完成，新增实体类型只碰一处
-- **M3**（W2 末）渲染单路 + 全 kind 表态（W1 已完成分派合一：②③ 均经 `EntityKindRegistry.RasterKindOf` 单一决议；① Core 注册表 6 类 null 补齐在 W2）
-- **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立
+- **M2**（W2 末）读侧注册表替换完成，新增实体类型只碰一处 ✅ 2026-11-06（0416a47）
+- **M3**（W2 末）渲染单路 + 全 kind 表态（W1 已完成分派合一：②③ 均经 `EntityKindRegistry.RasterKindOf` 单一决议；W2 ① Core 注册表全 kind 表态达成 55f2ce9——5 类补齐 + Insert 结构性表态；**渲染单路切换**＝RenderEntity 的 painter 回退删除，留 W4，届时旧 painter 表一并删）
+- **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立（W2 L1b 已落文字/标注/表格三族 9c46f2f；Rotation/Height/WidthFactor 共用字段归属待裁定）
 - **M5**（W4 末）写侧策略（D1）裁定 + 文档收口

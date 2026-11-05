@@ -30,7 +30,19 @@ commit 403b186/ae77205/6532157/bf853b1）：L4 EntityCollection 接入（块/空
 dict + 显式 SkipUnrasterized 漏斗）；L1a EntityBase 抽取 + 曲线/几何族四模型实存储 + DwgEntity 转发保
 API。**门教训**：G1 必须用 `--no-incremental` 跑（增量构建曾掩盖 9 处既有 nullable 警告，已修）；
 PNG 字节门仅同会话有效（GDI 文本反锯齿跨会话漂移 ~14px，几何区零漂移），跨会话用 JSON/SVG/PNG-L/convert。
-下一步 W2：L1b（文字/表格/标注族）+ L2（读侧注册表替换三元链）+ L5b（补 Core 注册表 6 类 null + 全 kind 表态）。
+
+W2 完成（2026-11-05/06，串行三车道，commit 0416a47/55f2ce9/9c46f2f）：**L2** EntityCodecRegistry 落地，
+33 个 codec 按 short 类型码注册，读侧三元链与 33 个 Decode switch 删除（新增实体类型只碰
+Codecs/ 一处 + Register 一行），Resolve null 显式炸（M2 达成）；**L5b** Core 渲染注册表补齐
+Point/Ellipse/Hatch/Table/MLeader 五类 renderer（painter 逻辑逐行迁移），Insert 归结构性表态（块走查
+渲染，无自身位图），`ForSvg`/`For` 拆分保 SVG 六类继续实体自绘（G3 不变），全 kind 表态达成（M3 的
+表态半项；渲染单路切换留 W4）；**L1b** TextGeometry/DimensionGeometry/TableGeometry 实存储 +
+DwgEntity 转发（Rotation/Height/WidthFactor 多族共用，归属 W3 裁定）。验证：3 fixture
+JSON/SVG/convert/PNG 四门全绿；OdWriteEx XRef.dwg（含 2 Ellipse）pre/post 逐字节等；仓外台架
+（E:\tmp\dwgp-ab，程序集名 DwgParser.Tests 吃两边 InternalsVisibleTo）8/8 合成实体 painter↔renderer
+像素等价。**覆盖缺口**：Table/MLeader 无真实 DWG fixture，像素等价由合成实体台架证明，
+真实 fixture 到位后应在 W4 切换前补跑。W2 契约偏差全表见 `docs/entity-refactor-plan.md` §3.2。
+下一步 W3：L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开）。
 
 ## 2026-09-29 HATCH 渐变块跨版本处理修复
 
