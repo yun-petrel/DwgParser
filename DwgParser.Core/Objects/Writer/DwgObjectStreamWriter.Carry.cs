@@ -258,6 +258,7 @@ public static partial class DwgObjectStreamWriter
         int contentBits = (int)(w.BitPosition - contentStart);
         WriteStringStreamSize(w, (uint)contentBits);
         w.WriteB(true);
+        rec.WroteCentralStringStream = true;
     }
 
     internal static bool TryCarryEedR2007Plus(BitWriter body, byte[] src, long eedStart, long eedEnd,

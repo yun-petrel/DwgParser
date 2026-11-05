@@ -60,20 +60,23 @@ public static partial class DwgObjectStreamWriter
                                 long numKnots = br.ReadBL();
                                 long numCtrl = br.ReadBL();
                                 if (numKnots is < 0 or > 100000 || numCtrl is < 0 or > 100000)
-                                    return null;
+                                    break;
                                 for (int k = 0; k < numKnots; k++) br.ReadBD();
                                 for (int k = 0; k < numCtrl; k++)
                                 {
                                     br.Read2RD();
                                     if (rational) br.ReadBD();
                                 }
-                                if (br.BitPosition >= geoEnd) return null;
+                                if (br.BitPosition >= geoEnd) break;
                                 anchors.Add(new BitInsert(br.BitPosition, "10"));
                                 break;
                             }
-                            default: return null;
+                            default:
+                                goto doneSegs;
                         }
                     }
+                    doneSegs:
+                    ;
                 }
                 else
                 {
@@ -89,11 +92,11 @@ public static partial class DwgObjectStreamWriter
                 }
                 br.ReadBL();
             }
-            if (br.BitPosition > geoEnd) return null;
+            if (br.BitPosition > geoEnd && anchors.Count == 0) return null;
         }
         catch
         {
-            return null;
+            if (anchors.Count == 0) return null;
         }
         if (anchors.Count == 0) return null;
         if (DebugTrace)
