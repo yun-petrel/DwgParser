@@ -162,7 +162,10 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
   因 Header 短节在 `FillLinetypeScales` 越界崩溃（违反解析不抛不变量），异常过滤器补越界族后康复；
   值级哨兵次日再抓 mgf2→AC1018 LTSCALE 1→0.3 退化（HeaderVarsCodec 遇 EndOfStream 优雅截断修复）。
 - **G9 编辑回路**（2026-11-06 增）：inspect→组 setText 单→--ops→回读验证新值 + 缺 --output 负例 rc=2；
-  建门修两处解析不抛违例（ops 单形状错误崩 CLI）与一处自证过严（rw.Errors==0 应为不引入新错误）。
+  建门修两处解析不抛违例（ops 单形状错误崩 CLI）与一处自证过严（rw.Errors==0 应为不引入新错误）；
+  后扩为四算子双 fixture（setText/setAttrib/addMText/delete 全回路）。
+- **G10 CLI 只读冒烟**（2026-11-06 增）：strings/classes/eedaudit × 全 fixture + acis/preview × AC1027
+  fixture 全 rc=0。
 
 ## 7. 风险与回退
 

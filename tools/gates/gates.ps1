@@ -185,24 +185,101 @@ function Invoke-G9 {
     if ($null -eq $fixtures) { Add-Result "G9" "BLOCKED" "out/base/manifest.json 缺失"; return }
     $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
     if (-not (Test-Path $cli)) { Add-Result "G9" "BLOCKED" "CLI 未构建"; return }
-    $f = $fixtures | Where-Object { Test-Path $_.source } | Select-Object -First 1
-    & $cli $f.source --inspect "out/gate/g9inspect.json" --limit 20 *> $null
-    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "inspect rc=$LASTEXITCODE"; return }
-    $insp = Get-Content "out/gate/g9inspect.json" -Raw -Encoding UTF8 | ConvertFrom-Json
-    $cand = $insp.candidates | Where-Object { $_.ops -contains "setText" } | Select-Object -First 1
-    if ($null -eq $cand) { Add-Result "G9" "FAIL" "无 setText 候选"; return }
-    $opsJson = '{"ops":[{"op":"setText","handle":"' + $cand.handle + '","value":"G9 编辑门测试文本"}]}'
-    [System.IO.File]::WriteAllText((Join-Path $Repo "out/gate/g9ops.json"), $opsJson, (New-Object System.Text.UTF8Encoding($false)))
-    & $cli $f.source --ops "out/gate/g9ops.json" --output "out/gate/g9out.dwg" --report "out/gate/g9report.json" *> $null
-    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "ops rc=$LASTEXITCODE"; return }
-    & $cli "out/gate/g9out.dwg" --json "out/gate/g9re.json" *> $null
-    if ($LASTEXITCODE -ne 0) { Add-Result "G9" "FAIL" "回读 rc=$LASTEXITCODE"; return }
-    $re = Get-Content "out/gate/g9re.json" -Raw -Encoding UTF8 | ConvertFrom-Json
-    $hit = $re.entities | Where-Object { $_.handle -eq $cand.handle } | Select-Object -First 1
-    if ($null -eq $hit -or $hit.text -ne "G9 编辑门测试文本") { Add-Result "G9" "FAIL" "回读未见到新值"; return }
-    & $cli $f.source --ops "out/gate/g9ops.json" --report "out/gate/g9r2.json" *> $null
-    if ($LASTEXITCODE -ne 2) { Add-Result "G9" "FAIL" "负例（缺 output）rc=$LASTEXITCODE 应为 2"; return }
-    Add-Result "G9" "PASS" "inspect→ops→回读编辑回路 + 用法负例 rc=2"
+    function New-OpsFile([string]$path, [string]$json) {
+        [System.IO.File]::WriteAllText((Join-Path $Repo $path), $json, (New-Object System.Text.UTF8Encoding($false)))
+    }
+    function Run-Ops([string]$src, [string]$opsPath, [string]$tag) {
+        & $cli $src --ops $opsPath --output "out/gate/g9out-$tag.dwg" --report "out/gate/g9rep-$tag.json" *> $null
+        return $LASTEXITCODE
+    }
+    $byStem = @{}
+    foreach ($x in $fixtures) { $byStem[$x.stem] = $x }
+
+    $fail = @()
+
+    $f1 = $byStem["mgf2_1015"]
+    if ($f1 -and (Test-Path $f1.source)) {
+        & $cli $f1.source --inspect "out/gate/g9inspect.json" --limit 40 *> $null
+        $insp = Get-Content "out/gate/g9inspect.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cand = $insp.candidates | Where-Object { $_.ops -contains "setText" } | Select-Object -First 1
+        if ($null -eq $cand) { $fail += "mgf2 无 setText 候选" }
+        else {
+            New-OpsFile "out/gate/g9ops1.json" ('{"ops":[{"op":"setText","handle":"' + $cand.handle + '","value":"G9 编辑门测试文本"}]}')
+            $rc = Run-Ops $f1.source "out/gate/g9ops1.json" "mgf2"
+            if ($rc -ne 0) { $fail += "mgf2 setText rc=$rc" }
+            else {
+                & $cli "out/gate/g9out-mgf2.dwg" --json "out/gate/g9re-mgf2.json" *> $null
+                $re = Get-Content "out/gate/g9re-mgf2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+                $hit = $re.entities | Where-Object { $_.handle -eq $cand.handle } | Select-Object -First 1
+                if ($null -eq $hit -or $hit.text -ne "G9 编辑门测试文本") { $fail += "mgf2 回读未见新值" }
+            }
+        }
+    }
+
+    $f2 = $byStem["kindee测试260508"]
+    if ($f2 -and (Test-Path $f2.source)) {
+        & $cli $f2.source --inspect "out/gate/g9inspect2.json" *> $null
+        $insp2 = Get-Content "out/gate/g9inspect2.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+        $sa = $insp2.candidates | Where-Object { $_.ops -contains "setAttrib" } | Select-Object -First 1
+        $dl = $insp2.candidates | Where-Object { $_.ops -contains "delete" -and $_.ops.Count -eq 1 } | Select-Object -First 1
+        if ($null -eq $sa -or $null -eq $dl) { $fail += "kindee 缺 setAttrib/delete 候选" }
+        else {
+            $opsJson = '{"ops":[' +
+                '{"op":"setAttrib","handle":"' + $sa.handle + '","text":"G9A","tag":"G9TAG"},' +
+                '{"op":"addMText","x":10.5,"y":20.25,"value":"G9 新增注释","height":3.5},' +
+                '{"op":"delete","handle":"' + $dl.handle + '"}]}'
+            New-OpsFile "out/gate/g9ops2.json" $opsJson
+            $before = & $cli $f2.source --json "out/gate/g9src-kindee.json" *> $null
+            $srcE = (Get-Content "out/gate/g9src-kindee.json" -Raw -Encoding UTF8 | ConvertFrom-Json).entities.Count
+            $rc = Run-Ops $f2.source "out/gate/g9ops2.json" "kindee"
+            if ($rc -ne 0) { $fail += "kindee 三算子 rc=$rc" }
+            else {
+                $rep = Get-Content "out/gate/g9rep-kindee.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+                if ($rep.written -ne $true) { $fail += "kindee written=false" }
+                $bad = $rep.outcomes | Where-Object { $_.status -ne "Applied" }
+                if ($bad) { $fail += ("kindee 算子未全 Applied: " + (($bad | ForEach-Object { $_.op + ":" + $_.reason }) -join "; ")) }
+                & $cli "out/gate/g9out-kindee.dwg" --json "out/gate/g9re-kindee.json" *> $null
+                $re2 = Get-Content "out/gate/g9re-kindee.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+                $ah = $re2.entities | Where-Object { $_.handle -eq $sa.handle } | Select-Object -First 1
+                if ($null -eq $ah -or $ah.tag -ne "G9TAG") { $fail += "kindee setAttrib 回读未见新 tag" }
+                $nm = $re2.entities | Where-Object { $_.text -eq "G9 新增注释" } | Select-Object -First 1
+                if ($null -eq $nm) { $fail += "kindee addMText 回读未见新增" }
+                $gone = $re2.entities | Where-Object { $_.handle -eq $dl.handle }
+                if ($gone) { $fail += "kindee delete 回读仍存在" }
+            }
+        }
+    }
+
+    $neg = $null
+    & $cli $f1.source --ops "out/gate/g9ops1.json" --report "out/gate/g9r2.json" *> $null
+    if ($LASTEXITCODE -ne 2) { $fail += "负例（缺 output）rc=$LASTEXITCODE 应为 2" }
+
+    if ($fail.Count -eq 0) { Add-Result "G9" "PASS" "四算子双 fixture 编辑回路（setText/setAttrib/addMText/delete）+ 用法负例 rc=2" }
+    else { Add-Result "G9" "FAIL" ($fail -join "; ") }
+}
+
+function Invoke-G10 {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Add-Result "G10" "BLOCKED" "out/base/manifest.json 缺失"; return }
+    $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    if (-not (Test-Path $cli)) { Add-Result "G10" "BLOCKED" "CLI 未构建"; return }
+    $fails = @()
+    foreach ($f in $fixtures) {
+        if (-not (Test-Path $f.source)) { continue }
+        foreach ($m in @("--strings", "--classes", "--eedaudit")) {
+            & $cli $f.source $m *> $null
+            if ($LASTEXITCODE -ne 0) { $fails += "$($f.stem)$m rc=$LASTEXITCODE" }
+        }
+    }
+    $acisFixture = $fixtures | Where-Object { $_.sourceVersion -eq "AC1027" -and (Test-Path $_.source) } | Select-Object -First 1
+    if ($acisFixture) {
+        & $cli $acisFixture.source --acis "out/gate/g10.sab" *> $null
+        if ($LASTEXITCODE -ne 0) { $fails += "$($acisFixture.stem)--acis rc=$LASTEXITCODE" }
+        & $cli $acisFixture.source --preview "out/gate/g10.bmp" *> $null
+        if ($LASTEXITCODE -ne 0) { $fails += "$($acisFixture.stem)--preview rc=$LASTEXITCODE" }
+    }
+    if ($fails.Count -eq 0) { Add-Result "G10" "PASS" "只读诊断模式（strings/classes/eedaudit×7 + acis/preview）全 rc=0" }
+    else { Add-Result "G10" "FAIL" ($fails -join "; ") }
 }
 
 function Invoke-G7 {
@@ -216,7 +293,7 @@ function Invoke-G7 {
 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
