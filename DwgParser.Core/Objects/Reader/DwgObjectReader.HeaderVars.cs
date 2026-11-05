@@ -25,7 +25,8 @@ public static partial class DwgObjectReader
             result.Celtscale = PositiveOr1(v, "CELTSCALE");
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or FormatException
-                                      or OverflowException or KeyNotFoundException)
+                                      or OverflowException or KeyNotFoundException
+                                      or IndexOutOfRangeException or ArgumentOutOfRangeException)
         {
         }
     }

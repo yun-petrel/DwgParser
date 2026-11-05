@@ -1,4 +1,4 @@
-﻿# 实体重构验收门 G1-G7（docs/entity-refactor-plan.md §6 + G7 实体层不变量）
+﻿# 实体重构验收门 G1-G8（docs/entity-refactor-plan.md §6 + G7 实体层不变量 + G8 跨版本棘轮）
 # 用法:  pwsh ./tools/gates/gates.ps1 [-Gate all|G1|G2|G3|G4|G5|G6] [-Repo <repoRoot>]
 # 语义:  每门输出 PASS / FAIL(<原因>) / BLOCKED(<缺依赖>)；任一 FAIL/BLOCKED 则退出码非 0。
 #        无 fixture 时 G2/G3/G4 报 BLOCKED，不得报绿（§6 BLOCKED 语义）。
@@ -127,6 +127,46 @@ function Invoke-G6 {
     else { Add-Result "G6" "FAIL" ($bad -join "; ") }
 }
 
+function Invoke-G8 {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Add-Result "G8" "BLOCKED" "out/base/manifest.json 缺失"; return }
+    $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    if (-not (Test-Path $cli)) { Add-Result "G8" "BLOCKED" "CLI 未构建"; return }
+    $knownBad = @()
+    $mf = Join-Path $Repo "out/base/manifest.json"
+    try { $knownBad = (Get-Content $mf -Raw -Encoding UTF8 | ConvertFrom-Json).g8KnownBad } catch {}
+    $versions = @("AC1015","AC1018","AC1021","AC1024","AC1027","AC1032")
+    $fails = @(); $knownOk = @()
+    foreach ($f in $fixtures) {
+        if (-not (Test-Path $f.source)) { continue }
+        foreach ($v in $versions) {
+            $combo = "$($f.stem):$v"
+            $outDwg = "out/gate/$($f.stem).g8.$v.dwg"
+            & $cli $f.source --convert $v --output $outDwg *> $null
+            $bad = $false
+            if ($LASTEXITCODE -ne 0) { $bad = $true }
+            else {
+                & $cli $outDwg --json "out/gate/g8reread.json" *> $null
+                if ($LASTEXITCODE -ne 0) { $bad = $true }
+            }
+            if ($bad -and $knownBad -contains $combo) { $fails += "$combo(已知坏)" }
+            elseif ($bad) { $fails += "$combo(新坏)" }
+            elseif ($knownBad -contains $combo) { $knownOk += $combo }
+        }
+    }
+    if ($knownOk.Count -gt 0) {
+        Add-Result "G8" "FAIL" ("组合修复后仍挂已知坏名单（从 manifest g8KnownBad 删除）: " + ($knownOk -join "; "))
+        return
+    }
+    $hardFail = $fails | Where-Object { $_ -notmatch "已知坏" }
+    if ($hardFail.Count -eq 0) {
+        $kb = ($fails | Measure-Object).Count
+        Add-Result "G8" "PASS" ("跨版本转换×再消费全矩阵（已知坏 " + $kb + " 项挂棘轮名单）")
+    } else {
+        Add-Result "G8" "FAIL" ("新坏组合: " + ($hardFail -join "; "))
+    }
+}
+
 function Invoke-G7 {
     $out = dotnet run --project tests/DwgParser.Tests 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -138,7 +178,7 @@ function Invoke-G7 {
 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
