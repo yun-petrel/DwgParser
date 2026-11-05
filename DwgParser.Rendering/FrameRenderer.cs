@@ -7,14 +7,11 @@ public sealed partial class FrameRenderer
 {
     private readonly ITextRendererBackend _text;
 
-    private readonly Dictionary<DwgEntityType, Action<DwgEntity, RasterCtx>> _painters;
-
     public FrameRenderer() : this(TextBackends.Current) { }
 
     public FrameRenderer(ITextRendererBackend text)
     {
         _text = text;
-        _painters = BuildPainters();
     }
 
     public ITextRendererBackend TextBackend => _text;
@@ -347,110 +344,22 @@ public sealed partial class FrameRenderer
     internal static int ViewportMarginPx(int widthPx, int heightPx) =>
         Math.Max(1, (int)Math.Round(Math.Min(widthPx, heightPx) * ViewportMarginFraction));
 
-    internal static (Func<double, double> Tx, Func<double, double> Ty, double scale)
-        MakeTransform(double minX, double minY, double maxX, double maxY, int width, int height, int marginPx)
-        => WorldTransform.Make(minX, minY, maxX, maxY, width, height, marginPx);
 
     internal void RenderEntity(DwgEntity e, RenderContext? ctx, int thick,
         PixelBuffer buf, Dictionary<ulong, short> layerColors, PngDrawDevice device)
     {
-        if (_ctx is not null && EntityRenderRegistry.RasterReady(e.Kind)
-            && EntityRenderRegistry.For(e.Kind) is { } renderer)
-        {
-            renderer.Render(e, _ctx, Matrix.Identity, device);
+        if (EntityRenderRegistry.For(e.Kind) is not { } renderer)
             return;
-        }
-
-        var (cr, cg, cb) = ParseColor(RenderContext.Color(e, layerColors));
-
-        (cr, cg, cb) = RenderInk.Map(cr, cg, cb);
-
-        var c = new RasterCtx(buf, thick, cr, cg, cb, device);
-        if (TryPainter(e.Kind, out var paint))
-            paint!(e, c);
-    }
-
-    internal bool HasPainterFor(DwgEntityType kind) =>
-        EntityRenderRegistry.RasterReady(kind) || TryPainter(kind, out _);
-
-    private PngDrawDevice NewDevice(PixelBuffer buf, DrawViewport view, int thick) =>
-        new(buf, view, thick, _text, _walk);
-
-    private bool TryPainter(DwgEntityType kind, out Action<DwgEntity, RasterCtx>? paint)
-    {
-        paint = _painters.GetValueOrDefault(EntityKindRegistry.RasterKindOf(kind));
-        return paint is not null;
+        renderer.Render(e, _ctx ?? throw new InvalidOperationException(
+            "RenderEntity 前必须建立 RenderContext（Render/Prepare）"), Matrix.Identity, device);
     }
 
     internal static int ClampPx(double v) => PxMath.ClampPx(v);
 
     internal static double ClampPxKeep(double v) => PxMath.ClampPxKeep(v);
 
-    private static void DrawPolylinePng(PixelBuffer buf, DwgEntity e,
-        Func<double, double> Px, Func<double, double> Py,
-        byte cr, byte cg, byte cb, int thick)
-    {
-        int n = e.Points.Count;
-        if (n < 2) return;
-        for (int i = 1; i < n; i++)
-            DrawPolySegment(buf, e.Points[i - 1], e.Points[i],
-                i - 1 < e.Bulges.Count ? e.Bulges[i - 1] : 0.0, Px, Py, cr, cg, cb, thick);
-        if (e.Closed && n > 1)
-            DrawPolySegment(buf, e.Points[n - 1], e.Points[0],
-                n - 1 < e.Bulges.Count ? e.Bulges[n - 1] : 0.0, Px, Py, cr, cg, cb, thick);
-    }
-
-    private static void DrawPolySegment(PixelBuffer buf, Vec2 p1, Vec2 p2, double bulge,
-        Func<double, double> Px, Func<double, double> Py,
-        byte cr, byte cg, byte cb, int thick)
-    {
-        if (Math.Abs(bulge) < 1e-6)
-        {
-            buf.DrawLine((int)Px(p1.X), (int)Py(p1.Y), (int)Px(p2.X), (int)Py(p2.Y), cr, cg, cb, thick);
-            return;
-        }
-        var pts = BulgeSampler.Sample(p1, p2, bulge);
-        for (int i = 1; i < pts.Count; i++)
-            buf.DrawLine((int)Px(pts[i - 1].X), (int)Py(pts[i - 1].Y),
-                (int)Px(pts[i].X), (int)Py(pts[i].Y), cr, cg, cb, thick);
-    }
-
-    private static void RenderEllipse(PixelBuffer buf, DwgEntity e,
-        Func<double, double> Px, Func<double, double> Py, double scale,
-        byte cr, byte cg, byte cb, int thick)
-    {
-        double a = Math.Max(0.001, e.Radius);
-        double b = Math.Max(0.001, a * e.WidthFactor);
-        double theta = Math.Atan2(e.Start.Y, e.Start.X);
-        double start = e.StartAngle, end = e.EndAngle;
-        if (end < start) end += Math.PI * 2;
-        if (end - start < 1e-6) { start = 0; end = Math.PI * 2; }
-        bool mirror = e.ExtrusionZ < 0;
-        int n = Math.Max(16, (int)((end - start) / (Math.PI / 48)));
-        double cosT = Math.Cos(theta), sinT = Math.Sin(theta);
-        double px = 0, py = 0;
-        for (int i = 0; i <= n; i++)
-        {
-            double t = start + (end - start) * i / n;
-            double ct = Math.Cos(t), st = Math.Sin(t);
-            double x = e.Center.X + a * ct * cosT - b * st * sinT;
-            double y = e.Center.Y + a * ct * sinT + b * st * cosT;
-            if (mirror) y = 2 * e.Center.Y - y;
-            double nx = Px(x), ny = Py(y);
-            if (i > 0)
-                buf.DrawLine((int)px, (int)py, (int)nx, (int)ny, cr, cg, cb, thick);
-            px = nx; py = ny;
-        }
-    }
-
-    internal static (byte r, byte g, byte b) ParseColor(string hex) => PxMath.ParseColor(hex);
-
-    private static (byte r, byte g, byte b) IndexColor(DwgEntity e)
-    {
-        string hex = RenderContext.Color(e);
-        return ParseColor(hex);
-    }
-
+    private PngDrawDevice NewDevice(PixelBuffer buf, DrawViewport view, int thick)
+        => new(buf, view, thick, _text, _walk);
 
     internal void Prepare(DwgObjectReader.WalkResult walk)
     {

@@ -112,6 +112,15 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 `DwgParser.Tests` 吃两边 InternalsVisibleTo，反射调私有 painter）8/8 合成实体像素等价。
 **缺口**：Table/MLeader 无真实 fixture，等价性仅由合成实体证明——真实 fixture 到位后、W4 切换前补跑。
 
+### 3.3 W4 单路切换与死路径删除（2026-11-06）
+
+- 删除：`FrameRenderer.Painters.cs` 全文件（RasterCtx/13 painter/DrawArrow）、`RenderEntity` painter 回退、`TryPainter`/`HasPainterFor`/`_painters`、`DrawPolylinePng`/`RenderEllipse`(Rendering)/`IndexColor`/`ParseColor`/`MakeTransform` 委托、`EntityKindRegistry.RasterPainterKeys`+`SvgImplementations`（零消费者）、`EntityRenderRegistry.RasterReady`。
+- `RenderEntity`：`For(e.Kind)` 无 renderer → 不绘（结构类）；有 → `renderer.Render(e, _ctx ?? 显式炸, Matrix.Identity, device)`。
+- `For(PointSequence)` 补 `PointSequenceRenderer`（painter 时代该键活跃，单路后不可缺）。
+- **SoftwareRasterizer 保留**：公共 API 面（RenderExtensions.* 包装），其 painter dict 非 FrameRenderer 死路径，`RasterKindOf`/`ClampPx` 委托随之保留。
+- 像素等价实证：3 fixture 中 2 个 PNG/PNG-L 逐字节不变（Solid x16~20、PointSequence 真实文件切换等价）；mgf2_1015 唯一差异带 y[518,542) +320 非白像素 = 1 个 Tolerance 从静默不画变绘出（本波目的）；目检图面完整。
+- **BLOCKED 清单（1 项）**：Table/MLeader 无真实 DWG fixture——其像素等价证据 = 合成实体台架 8/8（E:/tmp/dwgp-ab，painter 已删故该台架自此封存）；真实 fixture 到位后应跑一次 `--png` 与历史基线比对。
+
 ## 4. 车道划分（文件占用即所有权）
 
 
@@ -136,7 +145,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 | W1 | 3 手 | L1a（曲线/几何族）+ L4 + L5a（三路合一，只做分派不改绘制） | 集合层可用、单一分派 ✅ 2026-11-05（串行执行：ae77205/6532157/bf853b1） |
 | W2 | 3 手 | L1b（文字/表格/标注族）+ L2（注册表）+ L5b（补 6 类 renderer） | 三元链消失、覆盖 100% ✅ 2026-11-06（0416a47/55f2ce9/9c46f2f） |
 | W3 | 2 手 | L1c（剩余族 + `DwgEntity` 瘦身）+ L6（门禁铺开） | `DwgEntity` 只剩公共属性 ✅ 2026-11-06（2f30942/4a3298b/d52ccac；串行执行） |
-| W4 | 1 手 | 死路径删除（旧 painter 表、`SoftwareRasterizer` switch）、`docs/project-progress.md` 收口 | 门全绿 / 或明确 BLOCKED 清单 |
+| W4 | 1 手 | 死路径删除（旧 painter 表、`SoftwareRasterizer` switch）、`docs/project-progress.md` 收口 | 门全绿 / 或明确 BLOCKED 清单 ✅ 2026-11-06（门 6/6 PASS + BLOCKED 清单 1 项，见 §3.3） |
 
 ## 6. 验收门（可执行）
 
@@ -163,6 +172,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 - **M0**（W0 末）契约冻结、基线存档 ✅ 2026-11-04（三契约编译通过、G1 绿、基线 3 fixture 逐字节可比）
 - **M1**（W1 末）`EntityCollection` 上线，块/空间/图层视图全走它 ✅ 2026-11-05（块/空间走它；图层表元素类型 ILayer≠IEntity 未接入，遗留 W2）
 - **M2**（W2 末）读侧注册表替换完成，新增实体类型只碰一处 ✅ 2026-11-06（0416a47）
-- **M3**（W2 末）渲染单路 + 全 kind 表态（W1 已完成分派合一：②③ 均经 `EntityKindRegistry.RasterKindOf` 单一决议；W2 ① Core 注册表全 kind 表态达成 55f2ce9——5 类补齐 + Insert 结构性表态；**渲染单路切换**＝RenderEntity 的 painter 回退删除，留 W4，届时旧 painter 表一并删）
+- **M3**（W2 末）渲染单路 + 全 kind 表态 ✅ 2026-11-06（W2 表态达成 55f2ce9；W4 单路切换：painter 字典/`RasterReady` 删除，`RenderEntity` 直调 `EntityRenderRegistry.For`，`For` 无 renderer 的结构类不绘；MLine/Tolerance/Region/Solid3d/Body 从静默不画变为经 Core renderer 绘出，与 SVG 通道对齐——mgf2_1015 的 Tolerance 即此差异，PNG 基线已同会话重生成）
 - **M4**（W3 末）`DwgEntity` 只剩公共属性，族模型独立 ✅ 2026-11-06（4a3298b：443→198 行；10 个族模型实存储 + 转发保 API；Height/Rotation/WidthFactor/Name 跨族共用留守，裁定见 §3.2）
-- **M5**（W4 末）写侧策略（D1）裁定 + 文档收口
+- **M5**（W4 末）写侧策略（D1）裁定 + 文档收口 ✅ 2026-11-06（裁定：**写侧长期维持 record 驱动**——`--convert` G4 已证字节等价、写侧 97 分片系并行车道围栏、实体驱动重写无当期收益；`IEntityWriter` 空壳与 `EntityRecordMap` 草案不再落，避免死代码，写侧车道合并后如需再议）
+- **M6**（超越原计划）实体重构 W0-W4 全部完成，计划档转为冻结存档

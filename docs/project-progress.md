@@ -129,3 +129,11 @@ libredwg dwg.spec 中标记为 `SINCE(R_2004a)`）处理存在多个缺陷，导
 | `DwgObjectStreamWriter.WriteObject.Reencode.cs` | reencode 分支中调用 `WriteHatchGradientIfUpgrade` |
 | `DwgObjectRecord.cs` | 新增 `HatchGradientEndBit`、`HatchGradientName`、`HatchPatternSlotBit`、`HatchPatternName` 字段 |
 | `HatchEntity.cs` | `ReadBody` 中捕获 `HatchGradientEndBit`、`HatchGradientName`、`HatchPatternName` |
+
+W4 完成（2026-11-06）：**单路切换**——painter 字典/`RasterReady` 全删，`RenderEntity` 直调
+`EntityRenderRegistry.For`（M3 达成）；MLine/Tolerance/Region/Solid3d/Body 从静默不画变为绘出
+（与 SVG 对齐，mgf2_1015 的 1 个 Tolerance 为唯一像素差异，基线同会话重生成）；SoftwareRasterizer
+作为公共 API 面保留。**M5 裁定**：写侧长期维持 record 驱动，`IEntityWriter` 空壳不落（见 plan §8）。
+六门 6/6 PASS。**BLOCKED（1 项）**：Table/MLeader 真实 fixture 缺失，像素等价由合成台架背书
+（plan §3.3）。**实体类重构 W0-W4 至此全部完成**：DwgEntity 443→198 行、10 族模型、读侧 33 codec
+注册表、渲染单一决议源（For/ForSvg）、六门可执行。后续工作转入常规维护与写侧 HATCH 车道合并。

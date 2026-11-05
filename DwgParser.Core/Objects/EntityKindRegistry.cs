@@ -48,45 +48,4 @@ public static class EntityKindRegistry
 
     private static readonly System.Collections.Generic.Dictionary<DwgEntityType, DwgEntityType>
         _rasterKindByKind = All.ToDictionary(e => e.Kind, e => e.RasterKind);
-
-    public static readonly System.Collections.Generic.Dictionary<DwgEntityType, System.Type> SvgImplementations = new()
-    {
-        [DwgEntityType.Line] = typeof(LineEntity),
-        [DwgEntityType.Ray] = typeof(RayEntity),
-        [DwgEntityType.XLine] = typeof(XLineEntity),
-        [DwgEntityType.Circle] = typeof(CircleEntity),
-        [DwgEntityType.Arc] = typeof(ArcEntity),
-        [DwgEntityType.Point] = typeof(PointEntity),
-        [DwgEntityType.Text] = typeof(TextEntity),
-        [DwgEntityType.MText] = typeof(MTextEntity),
-        [DwgEntityType.AttDef] = typeof(AttDefEntity),
-        [DwgEntityType.Attrib] = typeof(AttributeEntity),
-        [DwgEntityType.Solid] = typeof(SolidEntity),
-        [DwgEntityType.Trace] = typeof(TraceEntity),
-        [DwgEntityType.LwPolyline] = typeof(LwPolylineEntity),
-        [DwgEntityType.Polyline2D] = typeof(Polyline2DEntity),
-        [DwgEntityType.Leader] = typeof(LeaderEntity),
-        [DwgEntityType.Spline] = typeof(SplineEntity),
-        [DwgEntityType.Hatch] = typeof(HatchEntity),
-        [DwgEntityType.Ellipse] = typeof(EllipseEntity),
-        [DwgEntityType.Viewport] = typeof(ViewportEntity),
-        [DwgEntityType.Dimension] = typeof(DimensionEntity),
-        [DwgEntityType.Insert] = typeof(InsertEntity),
-        [DwgEntityType.Table] = typeof(TableEntity),
-        [DwgEntityType.MLeader] = typeof(MLeaderEntity),
-        [DwgEntityType.MLine] = typeof(MLineEntity),
-        [DwgEntityType.Tolerance] = typeof(ToleranceEntity),
-        [DwgEntityType.Region] = typeof(RegionEntity),
-        [DwgEntityType.Solid3d] = typeof(Solid3dEntity),
-        [DwgEntityType.Body] = typeof(BodyEntity),
-    };
-
-    public static readonly DwgEntityType[] RasterPainterKeys =
-    [
-        DwgEntityType.Line, DwgEntityType.Circle, DwgEntityType.Arc, DwgEntityType.Point,
-        DwgEntityType.Solid, DwgEntityType.LwPolyline,
-        DwgEntityType.PointSequence, DwgEntityType.Hatch, DwgEntityType.Ellipse,
-        DwgEntityType.Viewport, DwgEntityType.Table,
-        DwgEntityType.MLeader,
-    ];
 }

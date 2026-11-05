@@ -4,20 +4,6 @@ namespace DwgParser.Core.Render;
 
 internal static class EntityRenderRegistry
 {
-    internal static bool RasterReady(DwgEntityType kind) => kind switch
-    {
-        DwgEntityType.Line or DwgEntityType.Ray or DwgEntityType.XLine
-            or DwgEntityType.Circle or DwgEntityType.Arc or DwgEntityType.Viewport
-            or DwgEntityType.LwPolyline or DwgEntityType.Polyline2D
-            or DwgEntityType.Spline or DwgEntityType.Leader
-            or DwgEntityType.Text or DwgEntityType.MText
-            or DwgEntityType.AttDef or DwgEntityType.Attrib
-            or DwgEntityType.Dimension
-            or DwgEntityType.Point or DwgEntityType.Ellipse
-            or DwgEntityType.Hatch or DwgEntityType.Table or DwgEntityType.MLeader => true,
-        _ => false,
-    };
-
     internal static IEntityRenderer? For(DwgEntityType kind) => kind switch
     {
         DwgEntityType.Point => PointRenderer.Instance,
@@ -25,6 +11,7 @@ internal static class EntityRenderRegistry
         DwgEntityType.Hatch => HatchRenderer.Instance,
         DwgEntityType.Table => TableRenderer.Instance,
         DwgEntityType.MLeader => MLeaderRenderer.Instance,
+        DwgEntityType.PointSequence => PointSequenceRenderer.Instance,
         _ => ForSvg(kind),
     };
 
