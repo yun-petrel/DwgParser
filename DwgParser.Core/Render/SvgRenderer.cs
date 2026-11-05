@@ -21,7 +21,7 @@ public static class SvgRenderer
         {
             var referenced = new HashSet<ulong>();
             foreach (var e in ctx.ModelSpaceEntities)
-                if (e.Kind == EntityKind.Insert)
+                if (e.Kind == DwgEntityType.Insert)
                     referenced.Add(e.OwnerHandle);
             foreach (var (blk, list) in ctx.BlockContents)
             {

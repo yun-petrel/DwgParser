@@ -18,7 +18,7 @@ public readonly record struct Vec3(double X, double Y, double Z);
 
 public class DwgEntity : EntityBase, IEntity
 {
-    EntityKind IEntity.Kind => ToEntityKind(Kind);
+    DwgEntityType IEntity.Kind => Kind;
 
     private LineGeometry? _lineGeo;
     private RadialGeometry? _radialGeo;
@@ -154,42 +154,6 @@ public class DwgEntity : EntityBase, IEntity
 
     public short TableRows { get => TableGeo.TableRows; set => TableGeo.TableRows = value; }
     public short TableColumns { get => TableGeo.TableColumns; set => TableGeo.TableColumns = value; }
-
-    public static EntityKind ToEntityKind(DwgEntityType k) => k switch
-    {
-        DwgEntityType.Line => EntityKind.Line,
-        DwgEntityType.Circle => EntityKind.Circle,
-        DwgEntityType.Arc => EntityKind.Arc,
-        DwgEntityType.Point => EntityKind.Point,
-        DwgEntityType.Text => EntityKind.Text,
-        DwgEntityType.Insert => EntityKind.Insert,
-        DwgEntityType.LwPolyline => EntityKind.LwPolyline,
-        DwgEntityType.Polyline2D => EntityKind.Polyline2D,
-        DwgEntityType.Vertex2D => EntityKind.Vertex2D,
-        DwgEntityType.Solid => EntityKind.Solid,
-        DwgEntityType.Trace => EntityKind.Trace,
-        DwgEntityType.BlockHeader => EntityKind.BlockHeader,
-        DwgEntityType.EndBlk => EntityKind.EndBlk,
-        DwgEntityType.Block => EntityKind.Block,
-        DwgEntityType.Attrib => EntityKind.Attrib,
-        DwgEntityType.AttDef => EntityKind.AttDef,
-        DwgEntityType.MText => EntityKind.MText,
-        DwgEntityType.Ellipse => EntityKind.Ellipse,
-        DwgEntityType.Spline => EntityKind.Spline,
-        DwgEntityType.Leader => EntityKind.Leader,
-        DwgEntityType.MLeader => EntityKind.MLeader,
-        DwgEntityType.Hatch => EntityKind.Hatch,
-        DwgEntityType.Dimension => EntityKind.Dimension,
-        DwgEntityType.Viewport => EntityKind.Viewport,
-        DwgEntityType.Table => EntityKind.Table,
-        DwgEntityType.MLine => EntityKind.MLine,
-        DwgEntityType.Tolerance => EntityKind.Tolerance,
-        DwgEntityType.Ray => EntityKind.Ray,
-        DwgEntityType.XLine => EntityKind.XLine,
-        DwgEntityType.SeqEnd => EntityKind.SeqEnd,
-        _ => EntityKind.Unknown,
-    };
-
 
     public string ToSvg(RenderContext ctx, Matrix transform)
         => EntityRenderRegistry.TryRenderSvg(this, ctx, transform) ?? WriteSvg(ctx, transform);
