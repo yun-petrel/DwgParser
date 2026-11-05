@@ -166,6 +166,9 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
   后扩为四算子双 fixture（setText/setAttrib/addMText/delete 全回路）。
 - **G10 CLI 只读冒烟**（2026-11-06 增）：strings/classes/eedaudit × 全 fixture + acis/preview × AC1027
   fixture 全 rc=0。
+- **G11 分层渲染哈希门**（2026-11-06 增）：`--pngL` 逐 fixture SHA256 对 manifest.pngLSha256——
+  PNG-L 跨会话稳定（W1 实测，GDI 反锯齿漂移仅在 `--png` 的脚注条），由此 LayeredFrameRenderer +
+  文本渲染链路获得**跨会话**门覆盖；`--png` 平推路径仍属同会话手动门。
 
 ## 7. 风险与回退
 

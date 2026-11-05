@@ -282,6 +282,25 @@ function Invoke-G10 {
     else { Add-Result "G10" "FAIL" ($fails -join "; ") }
 }
 
+function Invoke-G11 {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Add-Result "G11" "BLOCKED" "out/base/manifest.json 缺失"; return }
+    $cli = Join-Path $Repo "DwgParser.Cli/bin/Debug/net8.0-windows/DwgParser.Cli.exe"
+    if (-not (Test-Path $cli)) { Add-Result "G11" "BLOCKED" "CLI 未构建"; return }
+    $fails = @()
+    foreach ($f in $fixtures) {
+        if (-not (Test-Path $f.source)) { continue }
+        if (-not $f.pngLSha256) { $fails += "$($f.stem):基线无 pngLSha256"; continue }
+        $out = "out/gate/$($f.stem).g11.pngL"
+        & $cli $f.source --pngL $out *> $null
+        if ($LASTEXITCODE -ne 0) { $fails += "$($f.stem):pngL rc=$LASTEXITCODE"; continue }
+        $h = (Get-FileHash $out -Algorithm SHA256).Hash.ToLower()
+        if ($h -ne $f.pngLSha256.ToLower()) { $fails += "$($f.stem):pngL 哈希≠基线" }
+    }
+    if ($fails.Count -eq 0) { Add-Result "G11" "PASS" "分层渲染 PNG-L 逐 fixture 哈希=基线（跨会话稳定）" }
+    else { Add-Result "G11" "FAIL" ($fails -join "; ") }
+}
+
 function Invoke-G7 {
     $out = dotnet run --project tests/DwgParser.Tests 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -293,7 +312,7 @@ function Invoke-G7 {
 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10","G11") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
