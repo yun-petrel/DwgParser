@@ -146,7 +146,7 @@ public static class DwgEditor
     internal static string KindName(DwgEntityType kind) => kind.ToString();
 
 
-    private static string? DeleteRejection(DwgObjectReader.WalkResult walk, ulong handle)
+    internal static string? DeleteRejection(DwgObjectReader.WalkResult walk, ulong handle)
     {
         var ent = walk.Entities.Find(e => e.Handle == handle && !e.IsErased);
         if (ent is null) return $"射程外：h={handle:X} 不是本图里的存活实体。";
@@ -168,7 +168,7 @@ public static class DwgEditor
         return null;
     }
 
-    private static string? TextRejection(DwgObjectReader.WalkResult walk, ulong handle,
+    internal static string? TextRejection(DwgObjectReader.WalkResult walk, ulong handle,
         string value)
     {
         var ent = walk.Entities.Find(e => e.Handle == handle && !e.IsErased);
@@ -183,7 +183,7 @@ public static class DwgEditor
         return value is null ? "射程外：新值缺失。" : null;
     }
 
-    private static string? AttribRejection(DwgObjectReader.WalkResult walk, ulong handle)
+    internal static string? AttribRejection(DwgObjectReader.WalkResult walk, ulong handle)
     {
         var ent = walk.Entities.Find(e => e.Handle == handle && !e.IsErased);
         if (ent is null || ent.Kind != DwgEntityType.Attrib)
