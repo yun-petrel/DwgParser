@@ -150,7 +150,7 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
 ## 6. 验收门（可执行）
 
 - **G1 构建**：`dotnet build DwgParser.sln -warnaserror` → 0 error 0 warning。
-- **G2 结构快照**：`dwg <f> --json out/base/<stem>.json`，与基线 diff = 0（允许**新增**键，禁止改值/删键）。
+- **G2 结构快照**：`dwg <f> --json out/base/<stem>.json`，与基线**逐字节 SHA256 一致**（严格等价，含新增键——W0 原定"允许新增键"的宽松语义被严格门取代，`-Rebaseline` 使键变更的重生成成本可忽略）。
 - **G3 渲染快照**：`dwg <f> --svg out/base/<stem>.svg`，与基线 diff = 0；PNG 走 `RenderExtensions.Raster` 哈希比对。
 - **G4 字节等价**：`dwg <f> --convert <同版本> --output out/x.dwg`，与原文件/基线产物逐字节相同。
 - **G5 行数**：全仓 `*.cs` ≤ 800 行（`SourceFileSizeTests` 不存在，先用脚本门）。

@@ -14,7 +14,9 @@ dotnet build DwgParser.sln
 ## 门禁
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/gates/gates.ps1   # G1-G7 全量
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/gates/gates.ps1            # G1-G12 全量
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/gates/gates.ps1 -Gate G7   # 单门
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/gates/gates.ps1 -Rebaseline [-Stem <名>]   # 基线重生成（棘轮名单不触碰）
 ```
 
 | 门 | 内容 |
@@ -23,7 +25,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/gates/gates.ps1   # G1
 | G2/G3/G4 | 基线快照：`--json` / `--svg` / 同版本 `--convert` 与 `out/base/` 逐字节比对（fixture 清单含路径与 SHA256，见 `out/base/manifest.json`，**不入库**属本地门禁状态） |
 | G5 | 全仓 `*.cs` ≤ 800 行 |
 | G6 | 依赖方向单向（Core 不依赖 Rendering；设备层不反引 FrameRenderer） |
-| G7 | 实体层不变量（`tests/DwgParser.Tests`：codec 注册表 typeCode×版本全量、渲染全 kind 表态、集合语义、族默认值） |
+| G7 | 实体层不变量（`tests/DwgParser.Tests`：codec typeCode×版本全量、渲染全 kind 表态、集合双模式语义、族默认值、编辑三判据、光栅冒烟墨量、拾取几何） |
+| G8 | 跨版本转换×自消费全矩阵（7 fixture × 6 版本 convert→自读回）+ 值级哨兵（ltscale/celtscale）+ 已知坏棘轮（`manifest.g8KnownBad`，修后不摘即红） |
+| G9 | 编辑回路端到端（inspect→组单→--ops→回读验证；setText/setAttrib/addMText/delete/edit-attr 五腿 + 用法负例 rc=2） |
+| G10 | 只读诊断模式冒烟（strings/classes/eedaudit/fieldize × 7 fixture + acis/preview） |
+| G11 | 分层渲染容差门（`--pngL` 哈希→漂移则像素差分 ≤2000px 容差，`tools/gates/pngdiff.py`） |
+| G12 | 拾取场景端到端（`DwgScene.Load`→Pick 命中/确定性/图幅外/巨容差） |
 
 fixture 缺失时 G2-G4 报 `BLOCKED`，不报绿。PNG 字节门仅同会话有效（GDI 文本反锯齿跨会话漂移），
 跨会话用 JSON/SVG/convert。
