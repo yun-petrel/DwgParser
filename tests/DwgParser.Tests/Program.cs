@@ -267,4 +267,25 @@ var hq = new DwgEntity { Handle = 6, Kind = DwgEntityType.PointSequence, Points 
 Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(hq, 5, 5) < 1e-9, "PointSequence 段上 0");
 
 Console.WriteLine($"----\n{_total - _fail}/{_total} PASS");
+if (args.Length >= 2 && args[0] == "pick")
+{
+    var scene = DwgParser.WinForms.DwgScene.Load(args[1]);
+    var ents = scene.VisibleEntities;
+    Console.WriteLine($"可见实体 {ents.Count}");
+    if (ents.Count == 0) return 1;
+    var target = ents[0];
+    var b = scene.BoundsOf(target);
+    double cx = (b.MinX + b.MaxX) / 2, cy = (b.MinY + b.MaxY) / 2;
+    var hit = DwgParser.WinForms.EntityHitTest.Pick(scene, cx, cy, 8.0);
+    Ok(hit is not null, "实体包围盒中心处 Pick 命中");
+    var again = DwgParser.WinForms.EntityHitTest.Pick(scene, cx, cy, 8.0);
+    Ok(ReferenceEquals(hit, again), "Pick 确定性（两次同果）");
+    var far = DwgParser.WinForms.EntityHitTest.Pick(scene, b.MaxX + 1e7, b.MaxY + 1e7, 1.0);
+    Ok(far is null, "图幅外远点 Pick 为 null");
+    var wide = DwgParser.WinForms.EntityHitTest.Pick(scene, b.MaxX + 1e7, b.MaxY + 1e7, 5e7);
+    Ok(wide is not null, "巨容差下必有命中");
+Console.WriteLine($"----\n{_total - _fail}/{_total} PASS");
+    return _fail == 0 ? 0 : 1;
+}
+
 return _fail == 0 ? 0 : 1;

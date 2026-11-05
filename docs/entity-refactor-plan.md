@@ -166,9 +166,11 @@ pre/post（git worktree 双构建）PNG/PNG-L/SVG 逐字节等；仓后台架 `E
   后扩为四算子双 fixture（setText/setAttrib/addMText/delete 全回路）。
 - **G10 CLI 只读冒烟**（2026-11-06 增）：strings/classes/eedaudit × 全 fixture + acis/preview × AC1027
   fixture 全 rc=0。
-- **G11 分层渲染哈希门**（2026-11-06 增）：`--pngL` 逐 fixture SHA256 对 manifest.pngLSha256——
-  PNG-L 跨会话稳定（W1 实测，GDI 反锯齿漂移仅在 `--png` 的脚注条），由此 LayeredFrameRenderer +
-  文本渲染链路获得**跨会话**门覆盖；`--png` 平推路径仍属同会话手动门。
+- **G11 分层渲染容差门**（2026-11-06 增，同日抗噪重设计）：`--pngL` 逐 fixture 先哈希、漂移则像素差分
+  （tools/gates/pngdiff.py，≤2000 差异像素=文本抖动容差）——LayeredFrameRenderer + 文本链路跨会话门覆盖；
+  同会话实测 PNG-L 存在间歇哈希漂移（GDI 状态依赖），哈希严格门不可靠。
+- **G12 拾取场景门**（2026-11-06 增）：`DwgScene.Load(测试)` → Pick 命中/确定性/图幅外 null/巨容差必中
+  四断言（WinForms 拾取端到端，随 G7 的 DistanceTo 几何段互补）。
 
 ## 7. 风险与回退
 

@@ -331,6 +331,20 @@ function Invoke-G11 {
     } else { Add-Result "G11" "FAIL" ($fails -join "; ") }
 }
 
+function Invoke-G12 {
+    $fixtures = Get-Fixtures
+    if ($null -eq $fixtures) { Add-Result "G12" "BLOCKED" "out/base/manifest.json 缺失"; return }
+    $f = $fixtures | Where-Object { $_.stem -eq "测试" -and (Test-Path $_.source) } | Select-Object -First 1
+    if ($null -eq $f) { Add-Result "G12" "BLOCKED" "测试 fixture 缺失"; return }
+    $out = & dotnet run --project tests/DwgParser.Tests -- pick $f.source 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $detail = ($out | Select-String "FAIL" | Select-Object -First 2) -join "; "
+        Add-Result "G12" "FAIL" ("拾取场景: " + $detail)
+    } else {
+        Add-Result "G12" "PASS" "拾取场景（WinForms Pick 端到端）"
+    }
+}
+
 function Invoke-G7 {
     $out = dotnet run --project tests/DwgParser.Tests 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -389,7 +403,7 @@ function Invoke-Rebaseline([string]$stemFilter) {
 if ($Rebaseline) { Invoke-Rebaseline $Stem; exit 0 }
 
 New-Item -ItemType Directory -Force -Path "out/gate" *> $null
-$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10","G11") } else { @($Gate) }
+$gates = if ($Gate -eq "all") { @("G1","G2","G3","G4","G5","G6","G7","G8","G9","G10","G11","G12") } else { @($Gate) }
 foreach ($g in $gates) { & ("Invoke-" + $g) }
 
 $passCount = 0
