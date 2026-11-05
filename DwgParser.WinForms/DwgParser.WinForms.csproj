@@ -16,4 +16,8 @@
     <ProjectReference Include="..\DwgParser.Rendering\DwgParser.Rendering.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DwgParser.Tests" />
+  </ItemGroup>
+
 </Project>

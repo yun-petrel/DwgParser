@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\DwgParser.Core\DwgParser.Core.csproj" />
     <ProjectReference Include="..\..\DwgParser.Rendering\DwgParser.Rendering.csproj" />
+    <ProjectReference Include="..\..\DwgParser.WinForms\DwgParser.WinForms.csproj" />
   </ItemGroup>
 </Project>

@@ -248,5 +248,23 @@ for (int i = 0; i < blank.Buffer.Pixels.Length; i++)
     if (blank.Buffer.Pixels[i] != 255) blankInk++;
 Ok(blankInk == 0, "空列表渲染 = 纯白底");
 Ok(ink > 1000, $"实体渲染有墨（非白字节 {ink} > 1000）");
+Console.WriteLine("== 拾取几何（WinForms EntityHitTest.DistanceTo） ==");
+var hl = new DwgEntity { Handle = 1, Kind = DwgEntityType.Line, Start = new Vec2(0, 0), End = new Vec2(10, 0) };
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(hl, 5, 0) == 0, "Line 线上点距离 0");
+Ok(Math.Abs(DwgParser.WinForms.EntityHitTest.DistanceTo(hl, 5, 5) - 5) < 1e-9, "Line 中垂 5 单位");
+Ok(Math.Abs(DwgParser.WinForms.EntityHitTest.DistanceTo(hl, -3, 0) - 3) < 1e-9, "Line 端外投影钳制");
+var hp = new DwgEntity { Handle = 2, Kind = DwgEntityType.Point, Start = new Vec2(3, 4) };
+Ok(Math.Abs(DwgParser.WinForms.EntityHitTest.DistanceTo(hp, 0, 0) - 5) < 1e-9, "Point 3-4-5");
+var hc = new DwgEntity { Handle = 3, Kind = DwgEntityType.Circle, Center = new Vec2(0, 0), Radius = 10 };
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(hc, 10, 0) == 0, "Circle 圆周上 0");
+Ok(Math.Abs(DwgParser.WinForms.EntityHitTest.DistanceTo(hc, 0, 0) - 10) < 1e-9, "Circle 圆心距离=半径");
+var ha = new DwgEntity { Handle = 4, Kind = DwgEntityType.Arc, Center = new Vec2(0, 0), Radius = 10, StartAngle = 0, EndAngle = Math.PI / 2 };
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(ha, 10 * Math.Cos(0.5), 10 * Math.Sin(0.5)) < 1e-6, "Arc 弧上点 0");
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(ha, 10 * Math.Cos(3), 10 * Math.Sin(3)) > 1, "Arc 弧外同圆点不命中");
+var hp2 = new DwgEntity { Handle = 5, Kind = DwgEntityType.LwPolyline, Points = { new Vec2(0, 0), new Vec2(10, 0), new Vec2(10, 10) } };
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(hp2, 10, 5) == 0, "LwPolyline 边上 0");
+var hq = new DwgEntity { Handle = 6, Kind = DwgEntityType.PointSequence, Points = { new Vec2(0, 0), new Vec2(10, 10) } };
+Ok(DwgParser.WinForms.EntityHitTest.DistanceTo(hq, 5, 5) < 1e-9, "PointSequence 段上 0");
+
 Console.WriteLine($"----\n{_total - _fail}/{_total} PASS");
 return _fail == 0 ? 0 : 1;
