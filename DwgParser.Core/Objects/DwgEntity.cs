@@ -24,11 +24,17 @@ public class DwgEntity : EntityBase, IEntity
     private RadialGeometry? _radialGeo;
     private PolylineGeometry? _polyGeo;
     private CornersGeometry? _cornersGeo;
+    private TextGeometry? _textGeo;
+    private DimensionGeometry? _dimGeo;
+    private TableGeometry? _tableGeo;
 
     private LineGeometry LineGeo => _lineGeo ??= new();
     private RadialGeometry RadialGeo => _radialGeo ??= new();
     private PolylineGeometry PolyGeo => _polyGeo ??= new();
     private CornersGeometry CornersGeo => _cornersGeo ??= new();
+    private TextGeometry TextGeo => _textGeo ??= new();
+    private DimensionGeometry DimGeo => _dimGeo ??= new();
+    private TableGeometry TableGeo => _tableGeo ??= new();
 
     public Vec2 Start { get => LineGeo.Start; set => LineGeo.Start = value; }
     public Vec2 End { get => LineGeo.End; set => LineGeo.End = value; }
@@ -42,7 +48,7 @@ public class DwgEntity : EntityBase, IEntity
     public double StartAngle { get => RadialGeo.StartAngle; set => RadialGeo.StartAngle = value; }
     public double EndAngle { get => RadialGeo.EndAngle; set => RadialGeo.EndAngle = value; }
 
-    public string TextValue { get; set; } = "";
+    public string TextValue { get => TextGeo.TextValue; set => TextGeo.TextValue = value; }
     public double Height { get; set; }
     public double Rotation { get; set; }
     public double WidthFactor { get; set; } = 1.0;
@@ -77,38 +83,38 @@ public class DwgEntity : EntityBase, IEntity
 
     public bool PlineGen { get => PolyGeo.PlineGen; set => PolyGeo.PlineGen = value; }
 
-    public string Tag { get; set; } = "";
+    public string Tag { get => TextGeo.Tag; set => TextGeo.Tag = value; }
 
-    public string Prompt { get; set; } = "";
+    public string Prompt { get => TextGeo.Prompt; set => TextGeo.Prompt = value; }
 
-    public byte AttFlags { get; set; }
+    public byte AttFlags { get => TextGeo.AttFlags; set => TextGeo.AttFlags = value; }
 
-    public short AttFieldLength { get; set; }
+    public short AttFieldLength { get => TextGeo.AttFieldLength; set => TextGeo.AttFieldLength = value; }
 
-    public int AttIsLockedInBlock { get; set; } = -1;
+    public int AttIsLockedInBlock { get => TextGeo.AttIsLockedInBlock; set => TextGeo.AttIsLockedInBlock = value; }
 
-    public int AttKeepDuplicateRecords { get; set; } = -1;
+    public int AttKeepDuplicateRecords { get => TextGeo.AttKeepDuplicateRecords; set => TextGeo.AttKeepDuplicateRecords = value; }
 
-    public int AttMTextType { get; set; } = -1;
+    public int AttMTextType { get => TextGeo.AttMTextType; set => TextGeo.AttMTextType = value; }
 
-    public short TextAttachment { get; set; }
+    public short TextAttachment { get => TextGeo.TextAttachment; set => TextGeo.TextAttachment = value; }
 
-    public double RectWidth { get; set; }
+    public double RectWidth { get => TextGeo.RectWidth; set => TextGeo.RectWidth = value; }
 
-    public double RectHeight { get; set; }
+    public double RectHeight { get => TextGeo.RectHeight; set => TextGeo.RectHeight = value; }
 
-    public short LineSpacingStyle { get; set; }
-    public double LineSpacingFactor { get; set; } = 1.0;
+    public short LineSpacingStyle { get => TextGeo.LineSpacingStyle; set => TextGeo.LineSpacingStyle = value; }
+    public double LineSpacingFactor { get => TextGeo.LineSpacingFactor; set => TextGeo.LineSpacingFactor = value; }
 
-    public Vec2 AlignmentPoint { get; set; }
+    public Vec2 AlignmentPoint { get => TextGeo.AlignmentPoint; set => TextGeo.AlignmentPoint = value; }
 
-    public double ObliqueAngle { get; set; }
-    public short TextGenerationFlags { get; set; }
+    public double ObliqueAngle { get => TextGeo.ObliqueAngle; set => TextGeo.ObliqueAngle = value; }
+    public short TextGenerationFlags { get => TextGeo.TextGenerationFlags; set => TextGeo.TextGenerationFlags = value; }
 
-    public short HorizMode { get; set; }
-    public short VertMode { get; set; }
+    public short HorizMode { get => TextGeo.HorizMode; set => TextGeo.HorizMode = value; }
+    public short VertMode { get => TextGeo.VertMode; set => TextGeo.VertMode = value; }
 
-    public ulong TextStyleHandle { get; set; }
+    public ulong TextStyleHandle { get => TextGeo.TextStyleHandle; set => TextGeo.TextStyleHandle = value; }
 
     public Vec2 Dir { get; set; }
 
@@ -126,22 +132,22 @@ public class DwgEntity : EntityBase, IEntity
     public double VportBackClipZ { get; set; }
     public Vec2 VportViewTarget { get; set; }
 
-    public double Measurement { get; set; }
-    public Vec2 DimTextMid { get; set; }
-    public Vec2 DimXLine1 { get; set; }
-    public Vec2 DimXLine2 { get; set; }
-    public Vec2 DimDefPoint { get; set; }
-    public Vec2 DimDefPoint2 { get; set; }
-    public Vec2 DimLinePoint { get; set; }
-    public Vec2 DimCenter { get; set; }
-    public ulong DimBlockHandle { get; set; }
-    public ulong DimStyleHandle { get; set; }
-    public string DimSubtype { get; set; } = "";
-    public double DimTextRotation { get; set; }
-    public double DimLineRotation { get; set; }
+    public double Measurement { get => DimGeo.Measurement; set => DimGeo.Measurement = value; }
+    public Vec2 DimTextMid { get => DimGeo.DimTextMid; set => DimGeo.DimTextMid = value; }
+    public Vec2 DimXLine1 { get => DimGeo.DimXLine1; set => DimGeo.DimXLine1 = value; }
+    public Vec2 DimXLine2 { get => DimGeo.DimXLine2; set => DimGeo.DimXLine2 = value; }
+    public Vec2 DimDefPoint { get => DimGeo.DimDefPoint; set => DimGeo.DimDefPoint = value; }
+    public Vec2 DimDefPoint2 { get => DimGeo.DimDefPoint2; set => DimGeo.DimDefPoint2 = value; }
+    public Vec2 DimLinePoint { get => DimGeo.DimLinePoint; set => DimGeo.DimLinePoint = value; }
+    public Vec2 DimCenter { get => DimGeo.DimCenter; set => DimGeo.DimCenter = value; }
+    public ulong DimBlockHandle { get => DimGeo.DimBlockHandle; set => DimGeo.DimBlockHandle = value; }
+    public ulong DimStyleHandle { get => DimGeo.DimStyleHandle; set => DimGeo.DimStyleHandle = value; }
+    public string DimSubtype { get => DimGeo.DimSubtype; set => DimGeo.DimSubtype = value; }
+    public double DimTextRotation { get => DimGeo.DimTextRotation; set => DimGeo.DimTextRotation = value; }
+    public double DimLineRotation { get => DimGeo.DimLineRotation; set => DimGeo.DimLineRotation = value; }
 
-    public short TableRows { get; set; }
-    public short TableColumns { get; set; }
+    public short TableRows { get => TableGeo.TableRows; set => TableGeo.TableRows = value; }
+    public short TableColumns { get => TableGeo.TableColumns; set => TableGeo.TableColumns = value; }
 
     public static EntityKind ToEntityKind(DwgEntityType k) => k switch
     {
