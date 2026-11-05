@@ -27,6 +27,9 @@ public class DwgEntity : EntityBase, IEntity
     private TextGeometry? _textGeo;
     private DimensionGeometry? _dimGeo;
     private TableGeometry? _tableGeo;
+    private InsertGeometry? _insertGeo;
+    private LeaderGeometry? _leaderGeo;
+    private ViewportGeometry? _viewportGeo;
 
     private LineGeometry LineGeo => _lineGeo ??= new();
     private RadialGeometry RadialGeo => _radialGeo ??= new();
@@ -35,6 +38,9 @@ public class DwgEntity : EntityBase, IEntity
     private TextGeometry TextGeo => _textGeo ??= new();
     private DimensionGeometry DimGeo => _dimGeo ??= new();
     private TableGeometry TableGeo => _tableGeo ??= new();
+    private InsertGeometry InsertGeo => _insertGeo ??= new();
+    private LeaderGeometry LeaderGeo => _leaderGeo ??= new();
+    private ViewportGeometry ViewportGeo => _viewportGeo ??= new();
 
     public Vec2 Start { get => LineGeo.Start; set => LineGeo.Start = value; }
     public Vec2 End { get => LineGeo.End; set => LineGeo.End = value; }
@@ -55,11 +61,11 @@ public class DwgEntity : EntityBase, IEntity
 
     public List<Vec2> Points => PolyGeo.Points;
     public List<double> Bulges => PolyGeo.Bulges;
-    public ulong BlockHeaderHandle { get; set; }
-    public bool HasAttributes { get; set; }
-    public double ScaleX { get; set; } = 1.0;
-    public double ScaleY { get; set; } = 1.0;
-    public double ScaleZ { get; set; } = 1.0;
+    public ulong BlockHeaderHandle { get => InsertGeo.BlockHeaderHandle; set => InsertGeo.BlockHeaderHandle = value; }
+    public bool HasAttributes { get => InsertGeo.HasAttributes; set => InsertGeo.HasAttributes = value; }
+    public double ScaleX { get => InsertGeo.ScaleX; set => InsertGeo.ScaleX = value; }
+    public double ScaleY { get => InsertGeo.ScaleY; set => InsertGeo.ScaleY = value; }
+    public double ScaleZ { get => InsertGeo.ScaleZ; set => InsertGeo.ScaleZ = value; }
 
     public Matrix InsertPlacement()
         => Matrix.Translation(Start.X, Start.Y)
@@ -116,21 +122,21 @@ public class DwgEntity : EntityBase, IEntity
 
     public ulong TextStyleHandle { get => TextGeo.TextStyleHandle; set => TextGeo.TextStyleHandle = value; }
 
-    public Vec2 Dir { get; set; }
+    public Vec2 Dir { get => LeaderGeo.Dir; set => LeaderGeo.Dir = value; }
 
-    public bool ArrowheadOn { get; set; }
+    public bool ArrowheadOn { get => LeaderGeo.ArrowheadOn; set => LeaderGeo.ArrowheadOn = value; }
 
-    public short ArrowheadType { get; set; }
+    public short ArrowheadType { get => LeaderGeo.ArrowheadType; set => LeaderGeo.ArrowheadType = value; }
 
-    public double VportWidth { get; set; }
-    public Vec2 VportViewCenter { get; set; }
-    public double VportViewSize { get; set; }
-    public double VportTwist { get; set; }
-    public double VportSnapAngle { get; set; }
-    public Vec2 VportViewDirection { get; set; }
-    public double VportFrontClipZ { get; set; }
-    public double VportBackClipZ { get; set; }
-    public Vec2 VportViewTarget { get; set; }
+    public double VportWidth { get => ViewportGeo.VportWidth; set => ViewportGeo.VportWidth = value; }
+    public Vec2 VportViewCenter { get => ViewportGeo.VportViewCenter; set => ViewportGeo.VportViewCenter = value; }
+    public double VportViewSize { get => ViewportGeo.VportViewSize; set => ViewportGeo.VportViewSize = value; }
+    public double VportTwist { get => ViewportGeo.VportTwist; set => ViewportGeo.VportTwist = value; }
+    public double VportSnapAngle { get => ViewportGeo.VportSnapAngle; set => ViewportGeo.VportSnapAngle = value; }
+    public Vec2 VportViewDirection { get => ViewportGeo.VportViewDirection; set => ViewportGeo.VportViewDirection = value; }
+    public double VportFrontClipZ { get => ViewportGeo.VportFrontClipZ; set => ViewportGeo.VportFrontClipZ = value; }
+    public double VportBackClipZ { get => ViewportGeo.VportBackClipZ; set => ViewportGeo.VportBackClipZ = value; }
+    public Vec2 VportViewTarget { get => ViewportGeo.VportViewTarget; set => ViewportGeo.VportViewTarget = value; }
 
     public double Measurement { get => DimGeo.Measurement; set => DimGeo.Measurement = value; }
     public Vec2 DimTextMid { get => DimGeo.DimTextMid; set => DimGeo.DimTextMid = value; }
