@@ -2,6 +2,7 @@ using System.Reflection;
 using DwgParser.Core;
 using DwgParser.Core.Objects;
 using DwgParser.Core.Format;
+using DwgParser.Rendering;
 using DwgParser.Core.Render;
 
 int _fail = 0, _total = 0;
@@ -176,5 +177,57 @@ walk.Records.Add(recX);
 Ok(DwgEditor.DeleteRejection(walk, 0x110) != null, "delete: 被非宿主 owned 向量指向 → 拒");
 Ok(DwgEditor.DeleteRejection(walk, 0x113) != null, "delete: 无记录实体 → 拒（对照宿主向量豁免）");
 
+Console.WriteLine("== SoftwareRasterizer 冒烟（painter 键全分派） ==");
+var smoke = new List<IEntity>
+{
+    new DwgEntity { Handle = 1, Kind = DwgEntityType.Line, Start = new Vec2(10, 10), End = new Vec2(90, 90) },
+    new DwgEntity { Handle = 2, Kind = DwgEntityType.Circle, Center = new Vec2(50, 50), Radius = 20 },
+    new DwgEntity { Handle = 3, Kind = DwgEntityType.Arc, Center = new Vec2(50, 50), Radius = 15, StartAngle = 0, EndAngle = 1.5 },
+    new DwgEntity { Handle = 4, Kind = DwgEntityType.Point, Start = new Vec2(30, 30) },
+    new DwgEntity { Handle = 5, Kind = DwgEntityType.Solid, Corners = { new Vec2(10, 80), new Vec2(30, 80), new Vec2(30, 95), new Vec2(10, 95) } },
+    new DwgEntity { Handle = 6, Kind = DwgEntityType.LwPolyline, Points = { new Vec2(5, 5), new Vec2(40, 8), new Vec2(45, 40) }, Closed = true },
+    new DwgEntity { Handle = 7, Kind = DwgEntityType.PointSequence, Points = { new Vec2(60, 10), new Vec2(80, 30), new Vec2(70, 50) } },
+    new DwgEntity { Handle = 8, Kind = DwgEntityType.Hatch, SolidFill = true, Points = { new Vec2(50, 60), new Vec2(90, 62), new Vec2(88, 90), new Vec2(52, 88) } },
+    new DwgEntity { Handle = 9, Kind = DwgEntityType.Ellipse, Center = new Vec2(25, 50), Radius = 12, WidthFactor = 0.5 },
+    new DwgEntity { Handle = 10, Kind = DwgEntityType.Viewport, Center = new Vec2(20, 20), Height = 10, VportWidth = 15 },
+    new TableAcR2010Plus { Handle = 11, Kind = DwgEntityType.Table, Start = new Vec2(55, 55), TableRows = 1, TableColumns = 1 },
+    new DwgEntity { Handle = 12, Kind = DwgEntityType.MLeader },
+    new DwgEntity { Handle = 99 },
+};
+((TableEntity)smoke[10]).ColWidths.Add(20);
+((TableEntity)smoke[10]).RowHeights.Add(10);
+var rast = new SoftwareRasterizer(200, 200);
+rast.Buffer.SetPixel(100, 100, 0, 0, 0);
+int probe1 = rast.Buffer.Pixels.Count(b => b != 255);
+rast.Render(smoke);
+int probe2 = rast.Buffer.Pixels.Count(b => b != 255);
+var solo = new SoftwareRasterizer(200, 200);
+solo.Render(new List<IEntity> { smoke[0] });
+var lineEnt = (DwgEntity)smoke[0];
+var hex = RenderContext.Color(lineEnt);
+var (pr, pg, pb) = PxMath.ParseColor(hex);
+var (mr, mg, mb) = RenderInk.Map(pr, pg, pb);
+var pf = typeof(SoftwareRasterizer).GetField("_painters", BindingFlags.NonPublic | BindingFlags.Instance);
+var dict = (System.Collections.IDictionary)pf!.GetValue(solo)!;
+var spType = typeof(SoftwareRasterizer).GetNestedType("SoftPaint", BindingFlags.NonPublic | BindingFlags.Instance)!;
+var sp = Activator.CreateInstance(spType, lineEnt, null,
+    (Func<double, double, double>)((x, y) => 100), (Func<double, double, double>)((x, y) => 100),
+    2.0, (byte)0, (byte)0, (byte)0, 1);
+((Delegate)dict[DwgEntityType.Line]!).DynamicInvoke(sp);
+var mt = typeof(SoftwareRasterizer).GetMethod("MakeTransform", BindingFlags.NonPublic | BindingFlags.Instance);
+var tup = mt!.Invoke(solo, new object[] { 5.0, 5.0, 90.0, 95.0 })!;
+var (txF, tyF, scV) = ((Func<double, double, double>, Func<double, double, double>, double))tup;
+var sp2 = Activator.CreateInstance(spType, lineEnt, null, txF, tyF, scV, (byte)0, (byte)0, (byte)0, 1);
+((Delegate)dict[DwgEntityType.Line]!).DynamicInvoke(sp2);
+var blank = new SoftwareRasterizer(200, 200);
+blank.Render(new List<IEntity>());
+int ink = 0;
+for (int i = 0; i < rast.Buffer.Pixels.Length; i++)
+    if (rast.Buffer.Pixels[i] != 255) ink++;
+int blankInk = 0;
+for (int i = 0; i < blank.Buffer.Pixels.Length; i++)
+    if (blank.Buffer.Pixels[i] != 255) blankInk++;
+Ok(blankInk == 0, "空列表渲染 = 纯白底");
+Ok(ink > 1000, $"实体渲染有墨（非白字节 {ink} > 1000）");
 Console.WriteLine($"----\n{_total - _fail}/{_total} PASS");
 return _fail == 0 ? 0 : 1;

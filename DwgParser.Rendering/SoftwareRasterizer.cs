@@ -99,6 +99,7 @@ public sealed class SoftwareRasterizer
         Func<double, double, double> Tx, Func<double, double, double> Ty, double scale)
     {
         var (cr, cg, cb) = ParseColor(ctx?.EntityColor(e) ?? RenderContext.Color(e));
+        (cr, cg, cb) = RenderInk.Map(cr, cg, cb);
         int thick = Math.Max(1, _lineThickness);
         if (_painters.TryGetValue(EntityKindRegistry.RasterKindOf(e.Kind), out var paint))
             paint(new SoftPaint(e, ctx, Tx, Ty, scale, cr, cg, cb, thick));
